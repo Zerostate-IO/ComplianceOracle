@@ -1,0 +1,2 @@
+# Keep this directory tracked so framework data can be stored here
+# Framework JSON files are ignored (downloaded at runtime)
