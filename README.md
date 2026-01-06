@@ -228,6 +228,54 @@ compliance-oracle fetch --framework all
 - Embeddings: `all-MiniLM-L6-v2` (sentence-transformers)
 - Project state file: `.compliance-oracle/state.json` (per project)
 
+## Roadmap (high level)
+
+This is an implementation-focused roadmap; versions are approximate and may be refined.
+
+- **0.x – MCP server + CLI**
+  - Core MCP tools for NIST CSF 2.0 / NIST SP 800-53.
+  - RAG search, documentation state, evidence linking, gap analysis.
+
+- **0.1.x – Assessment/interview API (current)**
+  - Relationship-aware mappings (`ControlRelationship`).
+  - Direct vs. derived control status fields.
+  - Assessment/interview templates exposed via `get_assessment_questions` so any MCP-compatible
+    client can drive posture interviews.
+
+- **1.x–2.x – Richer assessment flows**
+  - More granular question types (policy vs. technical, per-asset questions).
+  - Better guidance mapping from answers to recommended `ControlStatus` and notes.
+  - Optional automation hooks to ingest evidence from other MCP tools.
+
+- **3.x – Local-only web UI (Docker/Compose)**
+  - Docker Compose stack with:
+    - ComplianceOracle MCP server.
+    - Local web application for visualizing posture and running interviews.
+  - Local, single-machine usage model:
+    - No authentication; access via `http://localhost` only.
+    - Per-project posture views and interactive assessment sessions.
+
+- **4.0 – Multi-tenant, internet-facing deployment**
+  - Multi-tenant and user model:
+    - Tenants (organizations).
+    - Multiple users per tenant, with roles (for example: CISO/vCISO, system owners,
+      application owners).
+    - Support for grouping users (teams) and assigning responsibility to users or groups.
+  - Asset and inventory model:
+    - Systems, applications, services, hardware, and other inventory items (for example,
+      "Salesforce", "Production Kubernetes cluster").
+    - Controls and assessment tasks can be scoped to specific assets.
+  - Delegation and approval flows:
+    - Allow assigning specific assets or control-scoped assessments to responsible owners
+      (for example, a Salesforce admin completes evidence and answers questions specific to
+      Salesforce).
+    - Higher-level roles (for example, CISO/vCISO) can review, comment on, and approve
+      statuses and evidence submitted by asset owners.
+  - Secure deployment model:
+    - Proper authentication and authorization.
+    - HTTPS termination and network hardening suitable for internet exposure.
+    - Back-end data store for tenants, users, assets, and assessments.
+
 ## License
 
 MIT © Zerostate-IO
