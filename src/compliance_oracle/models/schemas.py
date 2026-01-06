@@ -25,6 +25,15 @@ class ControlStatus(str, Enum):
     NOT_ADDRESSED = "not_addressed"
 
 
+class ControlRelationship(str, Enum):
+    """Type of relationship between mapped controls in different frameworks."""
+
+    EQUIVALENT = "equivalent"
+    BROADER = "broader"
+    NARROWER = "narrower"
+    RELATED = "related"
+
+
 class EvidenceType(str, Enum):
     """Types of evidence that can be linked."""
 
@@ -143,7 +152,20 @@ class ControlDocumentation(BaseModel):
 
     control_id: str
     framework_id: str
+
+    # Direct, explicit assessment status for this control
     status: ControlStatus
+
+    # Optional status derived from crosswalks with other frameworks
+    derived_status: ControlStatus | None = Field(default=None)
+    derived_sources: list[dict[str, str]] = Field(
+        default_factory=list,
+        description=(
+            "List of mappings that contributed to derived_status, e.g. "
+            "[{'framework_id': 'nist-csf-2.0', 'control_id': 'PR.AC-01', 'relationship': 'equivalent'}]"
+        ),
+    )
+
     implementation_summary: str | None = Field(default=None)
     evidence: list[Evidence] = Field(default_factory=list)
     owner: str | None = Field(default=None)
@@ -186,7 +208,10 @@ class ControlMapping(BaseModel):
     source_framework_id: str
     target_control_id: str
     target_framework_id: str
-    relationship: str = Field(description="equivalent, subset, superset, related")
+    relationship: ControlRelationship = Field(
+        default=ControlRelationship.RELATED,
+        description="equivalent, broader, narrower, related",
+    )
 
 
 class GapAnalysisResult(BaseModel):
@@ -197,7 +222,7 @@ class GapAnalysisResult(BaseModel):
     already_covered: list[dict[str, Any]]
     partially_covered: list[dict[str, Any]]
     gaps: list[dict[str, Any]]
-    summary: dict[str, int]
+    summary: dict[str, Any]
 
 
 # --- Tool Response Models ---

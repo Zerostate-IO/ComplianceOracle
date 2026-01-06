@@ -1,27 +1,32 @@
-# Compliance Oracle MCP Server {#readme}
+# Compliance Oracle MCP Server
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![uv](https://img.shields.io/badge/package%20manager-uv-orange.svg)](https://docs.astral.sh/uv/)
 
-**MCP server providing compliance framework tools (NIST CSF 2.0, NIST SP 800-53 Rev. 5)** for OpenCode/OhMyOpenCode agents.
+Compliance Oracle is an MCP server that provides tools for working with compliance frameworks
+(such as NIST CSF 2.0 and NIST SP 800-53 Rev. 5) from OpenCode/OhMyOpenCode agents.
 
-- 🔍 **Semantic search** across 100+ controls via RAG/ChromaDB
-- 📋 **Documentation mode** - track implementation status + evidence links
-- 🔄 **Gap analysis** - CSF → 800-53 mappings
-- 🛠️ **CLI** - fetch/index/validate/export
+It supports:
 
-## 🎯 Quickstart (Users)
+- Semantic search across framework controls via RAG/ChromaDB
+- Documentation mode for tracking implementation status and evidence
+- Cross-framework gap analysis (CSF → 800-53) using relationship-aware mappings
+- A CLI for fetching, indexing, validating, and exporting data
 
-Get up and running in minutes. Requires [uv](https://docs.astral.sh/uv/).
+## Quickstart (Users)
 
-### 1. Setup Environment
+Requires [uv](https://docs.astral.sh/uv/).
+
+### 1. Set up the environment
+
 ```bash
 git clone <repo> && cd ComplianceOracle
 uv sync
 ```
 
-### 2. Prepare NIST Framework Data
+### 2. Prepare NIST framework data
+
 ```bash
 # Fetch NIST data (~10MB JSON)
 uv run compliance-oracle fetch
@@ -32,10 +37,12 @@ uv run compliance-oracle index
 # Verify status
 uv run compliance-oracle status
 ```
-*Troubleshooting: If `compliance-oracle` command is not found, always prefix with `uv run`.*
+
+If the `compliance-oracle` command is not found, prefix with `uv run` as shown above.
 
 ### 3. Connect to OpenCode
-Add the following to your `~/.config/opencode/opencode.json`:
+
+Add the following block to `~/.config/opencode/opencode.json`:
 
 ```json
 {
@@ -51,162 +58,176 @@ Add the following to your `~/.config/opencode/opencode.json`:
   }
 }
 ```
-*Note: Replace `/Users/legend/projects/ComplianceOracle` with your actual repository path.*
 
-### 4. Setup Agent (OpenCode 1.0)
+Replace `/Users/legend/projects/ComplianceOracle` with the actual path to this repository.
 
-Create a Markdown subagent so you can explicitly @mention the compliance agent from any project:
+### 4. Configure the compliance agent (OpenCode 1.0)
+
+Create a Markdown subagent so you can explicitly mention the compliance agent from any project:
 
 ```bash
 mkdir -p ~/.config/opencode/agent
 $EDITOR ~/.config/opencode/agent/compliance-oracle.md
 ```
 
-Then add the following content:
+Use the following content:
 
 ```markdown
 ---
-description: NIST CSF 2.0 & 800-53 compliance auditing, gap analysis, documentation
+description: NIST CSF 2.0 and 800-53 compliance auditing, gap analysis, and documentation
 mode: subagent
 tools:
   complianceoracle_*: true
 ---
 
-You are a compliance auditor using the Compliance Oracle MCP tools.
+You are a dedicated compliance auditor using the Compliance Oracle MCP tools.
 
 Focus on:
 - Listing and exploring frameworks and controls
 - Searching for relevant controls based on natural-language requirements
-- Giving implementation guidance and checklists when asked
+- Providing implementation guidance and checklists when asked
 - Recording and exporting compliance documentation when requested
+- Projecting cross-framework coverage and identifying gaps using formal mappings
 ```
 
 Restart OpenCode after creating this file so the new agent is discovered.
 
-### 5. Test Usage
-In your OpenCode chat, mention `@compliance-oracle`:
-```
+### 5. Basic usage
+
+In your OpenCode chat, explicitly mention `@compliance-oracle`:
+
+```text
 @compliance-oracle list all frameworks
 @compliance-oracle search "data encryption"
 @compliance-oracle list CSF 2.0 controls for PR.DS
+@compliance-oracle get_framework_gap current_framework="nist-csf-2.0" target_framework="nist-800-53-r5"
 ```
 
-## 🔍 How It Works
+## Architecture and agent access
 
-### MCP Server vs Agent
+### MCP server vs. compliance agent
 
-| Component | Purpose | How to Enable |
-|-----------|---------|---------------|
-| **MCP Server** | Provides tools (list_controls, search_controls, etc.) | Already loaded via `opencode.json` |
-| **Agent** | Auto-delegates compliance tasks to MCP | Add to your `AGENTS.md` (see below) |
+| Component                      | Purpose                                                              | How to enable                    |
+|--------------------------------|----------------------------------------------------------------------|----------------------------------|
+| MCP server (`complianceoracle`) | Provides tools (lookup, search, documentation, mappings, gap analysis) | Configure in `opencode.json`     |
+| Compliance agent (`@compliance-oracle`) | The only agent that should bind `complianceoracle_*` tools directly     | Add the subagent markdown file   |
 
-The `AGENTS.md` in this repo is a **template** for you to copy into YOUR project. It shows how to configure a compliance agent that uses the `complianceoracle` MCP server.
+The `AGENTS.md` file in this repository is a template you can copy into your project to
+configure a compliance agent that uses the Compliance Oracle MCP server.
 
-### For This Session
+### Access pattern and delegation
 
-**Option A: Use Built-in Triggers (No config needed)**
+- The recommended pattern is to access Compliance Oracle only through the `@compliance-oracle` subagent.
+- Other agents (including general-purpose coding agents) should not bind `complianceoracle_*` tools directly.
+- When another agent needs compliance context, it should delegate to `@compliance-oracle`, for example:
 
-Sisyphus (the default agent) has built-in triggers for compliance keywords:
+  ```text
+  @compliance-oracle summarize our NIST CSF posture for this repository
+  ```
 
-```
-compliance: review this code
-nist: what controls apply here?
-audit: check our CSF compliance
-```
+This avoids unnecessary or accidental compliance queries, while still allowing orchestration
+layers to pull in compliance insights when required.
 
-Just prefix your request with these keywords and Sisyphus auto-delegates.
+## MCP tools catalog
 
-**Option B: Dedicated Agent (Explicit @mentions)**
+The main MCP tools exposed by the server are:
 
-Define a Markdown subagent that OpenCode can @mention directly. Create `~/.config/opencode/agent/compliance-oracle.md` with:
+| Tool                        | Purpose                              | Example                                                             |
+|-----------------------------|--------------------------------------|---------------------------------------------------------------------|
+| `list_frameworks()`         | List available frameworks            | `list_frameworks()`                                                 |
+| `list_controls()`           | Browse controls in a framework       | `list_controls("nist-csf-2.0", "PR")`                              |
+| `search_controls()`         | Semantic search over controls        | `search_controls("MFA")`                                           |
+| `get_control_details()`     | Retrieve full control details        | `get_control_details("PR.AC-01")`                                  |
+| `document_compliance()`     | Record direct implementation status  | `document_compliance("PR.DS-02", "implemented", framework="nist-csf-2.0")` |
+| `link_evidence()`           | Attach evidence to a control         | `link_evidence("PR.DS-02", "config", "docker-compose.yml", "Secrets mounted", line_start=10, line_end=15)` |
+| `get_documentation()`       | Retrieve current documentation state | `get_documentation(framework="nist-csf-2.0")`                      |
+| `export_documentation()`    | Export documentation as JSON/Markdown| `export_documentation("markdown", framework="nist-csf-2.0")`      |
+| `compare_frameworks()`      | Show cross-framework mappings        | `compare_frameworks("PR.AC-01")`                                   |
+| `get_guidance()`            | Provide implementation guidance      | `get_guidance("PR.AC-01")`                                         |
+| `get_control_context()`     | Show hierarchy and related controls  | `get_control_context("PR.DS-01")`                                  |
+| `get_framework_gap()`       | Relationship-aware migration gaps    | `get_framework_gap("nist-csf-2.0", "nist-800-53-r5")`             |
 
-```markdown
----
-description: NIST CSF 2.0 & 800-53 compliance auditing, gap analysis, documentation
-mode: subagent
-tools:
-  complianceoracle_*: true
----
+See `src/compliance_oracle/models/schemas.py` for complete response schemas.
 
-You are a compliance auditor using the Compliance Oracle MCP tools.
+## Direct vs. derived status and hypothetical coverage
 
-Focus on:
-- Listing and exploring frameworks and controls
-- Searching for relevant controls based on natural-language requirements
-- Giving implementation guidance and checklists when asked
-- Recording and exporting compliance documentation when requested
-```
+Compliance Oracle distinguishes between two types of control status:
 
-Then you can use `@compliance-oracle` explicitly:
+- Direct status (`status`): explicitly recorded via `document_compliance` for a given framework.
+- Derived status (`derived_status` and `derived_sources`): optional, inferred coverage based on
+  crosswalk mappings from other frameworks. Derived status is advisory, not authoritative.
 
-```
-@compliance-oracle list all PROTECT controls
-```
+Cross-framework mappings use typed relationships:
 
-## 🛠️ MCP Tools Catalog {#tools}
+- `equivalent` – controls are roughly one-to-one
+- `broader` – the source control covers more than the target
+- `narrower` – the source control covers part of the target
+- `related` – overlapping or related, but not directly covering
 
-| Tool | Purpose | Example |
-|------|---------|---------|
-| `list_frameworks()` | Available frameworks | `list_frameworks()` |
-| `list_controls("nist-csf-2.0", "PR")` | Browse hierarchy | PR.AC, PR.DS... |
-| `search_controls("MFA")` | Semantic RAG search | Returns top matches + scores |
-| `get_control_details("PR.AC-01")` | Full spec + mappings | Impl examples, refs |
-| `document_compliance(...)` | Track status | implemented/partial/planned |
-| `link_evidence(...)` | Link code/config | `link_evidence("PR.DS-02", "config", "docker-compose.yml", "Secrets mounted", line_start=10, line_end=15)` |
-| `get_documentation()` | Current state + summary | 42% complete |
-| `export_documentation("markdown")` | Reports | MD/JSON exports |
-| `compare_frameworks("PR.AC-01")` | Cross-framework | CSF → 800-53 |
-| `get_guidance("PR.AC-01")` | Implementation advice | Step-by-step checklist |\n| `get_control_context("PR.DS-01")` | Hierarchy/Siblings | Find related controls |
-| `get_framework_gap(...)` | Migration gaps | What's missing? |
+`get_framework_gap` treats the current framework as the source of truth and projects
+hypothetical coverage into the target framework according to these relationship types. This
+supports questions such as:
 
-**Full schemas:** `src/compliance_oracle/models/schemas.py`
+- "We are strong on NIST CSF; what would our NIST 800-53 posture look like?"
+- "Which 800-53 controls have no meaningful mapping from our current framework?"
 
-## 🚀 Advanced Usage {#advanced}
+When you formally adopt a new framework, you should still perform direct assessments with
+`document_compliance` for high‑risk controls and treat derived coverage as guidance rather than
+final ground truth.
 
-### Export Compliance Report
+## Advanced usage
+
+### Export a compliance report
+
 ```bash
 compliance-oracle export --format markdown > compliance-report.md
 ```
 
-### Custom MCP Endpoint
+### Start a custom MCP endpoint
+
 ```bash
 uv run python -m compliance_oracle.server --transport http --port 8001
 ```
 
-### LLM Agent Prompt Template {#llm-template}
-```
-Role: Compliance Auditor using Compliance Oracle MCP
+### Example LLM agent prompt
+
+```text
+Role: Compliance auditor using Compliance Oracle MCP
 
 1. list_frameworks()
 2. search_controls("[requirement]")
 3. For each relevant control:
    - get_control_details()
    - get_guidance()
-   - document_compliance() if evidence found
+   - document_compliance() if evidence is found
 4. get_documentation() → export_documentation("markdown")
 
-Framework: NIST CSF 2.0
+Frameworks in scope: ["nist-csf-2.0", ...]
 Project: [describe codebase]
 ```
 
-## 🧪 Development {#dev}
+## Development
 
 ```bash
-uv sync --dev          # + pytest/ruff/mypy
-pytest                 # Unit tests
-ruff check --fix       # Lint
-mypy src/              # Types
+uv sync --dev          # Install dev dependencies (pytest, ruff, mypy, etc.)
+pytest                 # Run tests (if any)
+ruff check --fix       # Lint and auto-fix
+mypy src/              # Type checking
 ```
 
-**Missing data?** `compliance-oracle fetch --framework all`
+If framework data is missing, run:
 
-## 📚 Data Sources {#data}
+```bash
+compliance-oracle fetch --framework all
+```
 
-- NIST CSF 2.0: [CPRT Catalog](https://csrc.nist.gov/projects/cprt/catalog#/cprt/framework/version/CSF_2_0_0/home)
-- NIST 800-53 R5: [CPRT Catalog](https://csrc.nist.gov/projects/cprt/catalog#/cprt/framework/version/SP_800_53_5_1_1/home)
+## Data sources
+
+- NIST CSF 2.0: <https://csrc.nist.gov/projects/cprt/catalog#/cprt/framework/version/CSF_2_0_0/home>
+- NIST 800-53 Rev. 5: <https://csrc.nist.gov/projects/cprt/catalog#/cprt/framework/version/SP_800_53_5_1_1/home>
 - Embeddings: `all-MiniLM-L6-v2` (sentence-transformers)
-- State: `.compliance-oracle/state.json` (per-project)
+- Project state file: `.compliance-oracle/state.json` (per project)
 
-## 🔒 License
+## License
 
-MIT © Zerostate-IO","filePath">/Users/legend/projects/ComplianceOracle/README.md
+MIT © Zerostate-IO

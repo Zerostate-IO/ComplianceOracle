@@ -8,6 +8,7 @@ from compliance_oracle.documentation.state import ComplianceStateManager
 from compliance_oracle.frameworks.manager import FrameworkManager
 from compliance_oracle.models.schemas import (
     ControlMapping,
+    ControlRelationship,
     ControlStatus,
     GapAnalysisResult,
 )
@@ -67,13 +68,24 @@ class FrameworkMapper:
             with open(mapping_file) as f:
                 data = json.load(f)
             for m in data.get("mappings", []):
+                rel_str = m.get("relationship", "related")
+                rel_map = {
+                    "equivalent": ControlRelationship.EQUIVALENT,
+                    "subset": ControlRelationship.NARROWER,
+                    "narrower": ControlRelationship.NARROWER,
+                    "superset": ControlRelationship.BROADER,
+                    "broader": ControlRelationship.BROADER,
+                    "related": ControlRelationship.RELATED,
+                }
+                relationship = rel_map.get(rel_str, ControlRelationship.RELATED)
+
                 mappings.append(
                     ControlMapping(
                         source_control_id=m["source_control_id"],
                         source_framework_id=source_framework,
                         target_control_id=m["target_control_id"],
                         target_framework_id=target_framework,
-                        relationship=m.get("relationship", "related"),
+                        relationship=relationship,
                     )
                 )
         else:
@@ -116,7 +128,7 @@ class FrameworkMapper:
                             source_framework_id=source_framework,
                             target_control_id=target_id,
                             target_framework_id=target_framework,
-                            relationship="related",
+                            relationship=ControlRelationship.RELATED,
                         )
                     )
 
@@ -205,6 +217,10 @@ class FrameworkMapper:
     ) -> GapAnalysisResult:
         """Analyze gaps between current compliance and target framework.
 
+        This treats the current framework as the source of truth and uses
+        crosswalk mappings (with relationship types) to project hypothetical
+        coverage into the target framework.
+
         Args:
             current_framework: Framework you're currently compliant with.
             target_framework: Framework you want to achieve.
@@ -212,7 +228,8 @@ class FrameworkMapper:
             project_path: Path to project for state file.
 
         Returns:
-            Gap analysis result.
+            Gap analysis result, including fully covered, partially covered,
+            and gap controls in the target framework.
         """
         # Get all mappings from current to target
         mappings = await self._load_mappings(current_framework, target_framework)
@@ -236,22 +253,20 @@ class FrameworkMapper:
             current_controls = await self._framework_manager.list_controls(current_framework)
             current_implemented = {c.id for c in current_controls}
 
-        # Build mapping from target control to source controls
-        target_to_source: dict[str, list[str]] = {}
+        # Build mapping from target control to list of ControlMapping objects
+        target_to_mappings: dict[str, list[ControlMapping]] = {}
         for mapping in mappings:
-            if mapping.target_control_id not in target_to_source:
-                target_to_source[mapping.target_control_id] = []
-            target_to_source[mapping.target_control_id].append(mapping.source_control_id)
+            target_to_mappings.setdefault(mapping.target_control_id, []).append(mapping)
 
         # Categorize target controls
-        already_covered = []
-        partially_covered = []
-        gaps = []
+        already_covered: list[dict[str, Any]] = []
+        partially_covered: list[dict[str, Any]] = []
+        gaps: list[dict[str, Any]] = []
 
         for target_ctrl in target_controls:
-            source_controls = target_to_source.get(target_ctrl.id, [])
+            mappings_for_target = target_to_mappings.get(target_ctrl.id, [])
 
-            if not source_controls:
+            if not mappings_for_target:
                 # No mapping - this is a gap
                 gaps.append(
                     {
@@ -261,41 +276,94 @@ class FrameworkMapper:
                         "reason": "No mapping from current framework",
                     }
                 )
-            else:
-                # Check how many source controls are implemented
-                implemented_sources = [s for s in source_controls if s in current_implemented]
+                continue
 
-                if len(implemented_sources) == len(source_controls):
-                    # All source controls implemented - fully covered
+            # Group mappings by relationship type
+            eq = [
+                m for m in mappings_for_target if m.relationship == ControlRelationship.EQUIVALENT
+            ]
+            broader = [
+                m for m in mappings_for_target if m.relationship == ControlRelationship.BROADER
+            ]
+            narrower = [
+                m for m in mappings_for_target if m.relationship == ControlRelationship.NARROWER
+            ]
+            related = [
+                m for m in mappings_for_target if m.relationship == ControlRelationship.RELATED
+            ]
+
+            # Helper sets
+            all_source_controls = {m.source_control_id for m in mappings_for_target}
+            implemented_all = [s for s in all_source_controls if s in current_implemented]
+
+            # First, consider equivalent/broader mappings as strongest evidence
+            eq_broader = eq + broader
+            if eq_broader:
+                eq_broader_sources = {m.source_control_id for m in eq_broader}
+                implemented_eq_broader = [s for s in eq_broader_sources if s in current_implemented]
+                missing_eq_broader = [s for s in eq_broader_sources if s not in current_implemented]
+
+                if implemented_eq_broader and not missing_eq_broader:
                     already_covered.append(
                         {
                             "control_id": target_ctrl.id,
                             "control_name": target_ctrl.name,
-                            "covered_by": implemented_sources,
+                            "covered_by": implemented_eq_broader,
+                            "relationship_summary": "equivalent/broader mappings fully implemented",
                         }
                     )
-                elif implemented_sources:
-                    # Some source controls implemented - partially covered
+                    continue
+                elif implemented_eq_broader:
                     partially_covered.append(
                         {
                             "control_id": target_ctrl.id,
                             "control_name": target_ctrl.name,
-                            "covered_by": implemented_sources,
-                            "missing_coverage": [
-                                s for s in source_controls if s not in current_implemented
-                            ],
+                            "covered_by": implemented_eq_broader,
+                            "missing_coverage": missing_eq_broader,
+                            "relationship_summary": "some equivalent/broader mappings implemented",
                         }
                     )
-                else:
-                    # No source controls implemented - gap despite mapping
-                    gaps.append(
+                    continue
+
+            # Next, consider narrower mappings (source is narrower than target)
+            if narrower:
+                narrow_sources = {m.source_control_id for m in narrower}
+                implemented_narrow = [s for s in narrow_sources if s in current_implemented]
+                missing_narrow = [s for s in narrow_sources if s not in current_implemented]
+
+                if implemented_narrow:
+                    partially_covered.append(
                         {
                             "control_id": target_ctrl.id,
                             "control_name": target_ctrl.name,
-                            "description": target_ctrl.description,
-                            "reason": f"Mapped controls not implemented: {source_controls}",
+                            "covered_by": implemented_narrow,
+                            "missing_coverage": missing_narrow,
+                            "relationship_summary": "source controls are narrower than target; partial coverage inferred",
                         }
                     )
+                    continue
+
+            # If we reach here, there are no implemented equivalent/broader/narrower mappings
+            if related:
+                gaps.append(
+                    {
+                        "control_id": target_ctrl.id,
+                        "control_name": target_ctrl.name,
+                        "description": target_ctrl.description,
+                        "reason": "Only related mappings exist; needs direct assessment in target framework",
+                        "mapped_from": sorted({m.source_control_id for m in related}),
+                    }
+                )
+            else:
+                # Mapped, but none of the mapped controls are implemented
+                gaps.append(
+                    {
+                        "control_id": target_ctrl.id,
+                        "control_name": target_ctrl.name,
+                        "description": target_ctrl.description,
+                        "reason": f"Mapped controls not implemented: {sorted(all_source_controls)}",
+                    }
+                )
 
         return GapAnalysisResult(
             current_framework=current_framework,
