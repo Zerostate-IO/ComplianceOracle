@@ -49,17 +49,17 @@ Add the following block to `~/.config/opencode/opencode.json`:
   "mcp": {
     "complianceoracle": {
       "type": "local",
-      "command": ["uv", "--directory", "/Users/legend/projects/ComplianceOracle", "run", "python", "-m", "compliance_oracle.server"],
+      "command": ["uv", "--directory", "/path/to/ComplianceOracle", "run", "python", "-m", "compliance_oracle.server"],
       "enabled": true,
       "environment": {
-        "PYTHONPATH": "/Users/legend/projects/ComplianceOracle/src"
+        "PYTHONPATH": "/path/to/ComplianceOracle/src"
       }
     }
   }
 }
 ```
 
-Replace `/Users/legend/projects/ComplianceOracle` with the actual path to this repository.
+Replace `/path/to/ComplianceOracle` with the actual path to this repository on your system.
 
 ### 4. Configure the compliance agent (OpenCode 1.0)
 

@@ -9,6 +9,7 @@ from compliance_oracle.tools.lookup import register_lookup_tools
 from compliance_oracle.tools.search import register_search_tools
 from compliance_oracle.tools.documentation import register_documentation_tools
 from compliance_oracle.tools.framework_mgmt import register_framework_tools
+from compliance_oracle.tools.assessment import register_assessment_tools
 
 # Create the MCP server
 mcp = FastMCP(
@@ -21,6 +22,7 @@ register_lookup_tools(mcp)
 register_search_tools(mcp)
 register_documentation_tools(mcp)
 register_framework_tools(mcp)
+register_assessment_tools(mcp)
 
 
 def main() -> None:

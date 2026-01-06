@@ -201,6 +201,49 @@ class ComplianceSummary(BaseModel):
 # --- Gap Analysis Models ---
 
 
+class AssessmentAnswerType(str, Enum):
+    """Type of answer expected for an assessment question."""
+
+    YES_NO = "yes_no"
+    CHOICE = "choice"
+    FREE_TEXT = "free_text"
+
+
+class AssessmentAnswerOption(BaseModel):
+    """Single answer option for a multiple-choice assessment question."""
+
+    value: str
+    label: str
+    maps_to_status: ControlStatus | None = Field(
+        default=None,
+        description="If set, selecting this option should map to the given control status.",
+    )
+
+
+class AssessmentQuestion(BaseModel):
+    """Interview-style question used to assess one or more controls."""
+
+    id: str
+    framework_id: str
+    control_ids: list[str]
+    text: str
+    answer_type: AssessmentAnswerType
+    answer_options: list[AssessmentAnswerOption] = Field(default_factory=list)
+
+
+class AssessmentTemplate(BaseModel):
+    """Collection of assessment questions for a given scope."""
+
+    framework_id: str
+    scope: str = Field(
+        description="Scope of the assessment: framework, function, category, or control.",
+    )
+    function_id: str | None = None
+    category_id: str | None = None
+    control_ids: list[str] = Field(default_factory=list)
+    questions: list[AssessmentQuestion] = Field(default_factory=list)
+
+
 class ControlMapping(BaseModel):
     """Mapping between controls in different frameworks."""
 
