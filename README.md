@@ -53,11 +53,35 @@ Add the following to your `~/.config/opencode/opencode.json`:
 ```
 *Note: Replace `/Users/legend/projects/ComplianceOracle` with your actual repository path.*
 
-### 4. Setup Agent
-Copy `AGENTS.md` to your project's root to enable the dedicated compliance agent:
+### 4. Setup Agent (OpenCode 1.0)
+
+Create a Markdown subagent so you can explicitly @mention the compliance agent from any project:
+
 ```bash
-cp AGENTS.md /path/to/your/project/
+mkdir -p ~/.config/opencode/agent
+$EDITOR ~/.config/opencode/agent/compliance-oracle.md
 ```
+
+Then add the following content:
+
+```markdown
+---
+description: NIST CSF 2.0 & 800-53 compliance auditing, gap analysis, documentation
+mode: subagent
+tools:
+  complianceoracle_*: true
+---
+
+You are a compliance auditor using the Compliance Oracle MCP tools.
+
+Focus on:
+- Listing and exploring frameworks and controls
+- Searching for relevant controls based on natural-language requirements
+- Giving implementation guidance and checklists when asked
+- Recording and exporting compliance documentation when requested
+```
+
+Restart OpenCode after creating this file so the new agent is discovered.
 
 ### 5. Test Usage
 In your OpenCode chat, mention `@compliance-oracle`:
@@ -94,17 +118,23 @@ Just prefix your request with these keywords and Sisyphus auto-delegates.
 
 **Option B: Dedicated Agent (Explicit @mentions)**
 
-Create `~/AGENTS.md` with:
+Define a Markdown subagent that OpenCode can @mention directly. Create `~/.config/opencode/agent/compliance-oracle.md` with:
 
-```typescript
-export const complianceOracleAgent: AgentConfig = {
-  name: "compliance-oracle",
-  description: "NIST CSF 2.0 & 800-53 compliance auditing",
-  mcp: "complianceoracle",
-  tools: true,
-  icon: "🔒",
-  trigger: [/compliance/i, /nist/i, /csf|800-53/i, /audit/i],
-};
+```markdown
+---
+description: NIST CSF 2.0 & 800-53 compliance auditing, gap analysis, documentation
+mode: subagent
+tools:
+  complianceoracle_*: true
+---
+
+You are a compliance auditor using the Compliance Oracle MCP tools.
+
+Focus on:
+- Listing and exploring frameworks and controls
+- Searching for relevant controls based on natural-language requirements
+- Giving implementation guidance and checklists when asked
+- Recording and exporting compliance documentation when requested
 ```
 
 Then you can use `@compliance-oracle` explicitly:

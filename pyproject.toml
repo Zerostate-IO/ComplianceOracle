@@ -1,6 +1,6 @@
 [project]
 name = "compliance-oracle"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server for evaluating designs and code against compliance frameworks (NIST CSF 2.0, 800-53)"
 readme = "README.md"
 license = { text = "MIT" }
