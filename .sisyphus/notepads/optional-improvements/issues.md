@@ -1,0 +1,1 @@
+- Full suite currently has unrelated failures in tests/test_assessment.py (21 failures) despite framework_mgmt tests passing and reaching 100% coverage.

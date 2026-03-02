@@ -1,0 +1,66 @@
+================================================================================
+COMPLIANCE ORACLE - TASK 4: PURPOSE ALIGNMENT EVIDENCE
+================================================================================
+Generated: 2026-02-28
+Task: 4 - Define and Apply Canonical Purpose Narrative (Reality-First)
+================================================================================
+
+CHANGES MADE
+================================================================================
+
+1. pyproject.toml (line 4)
+   BEFORE: description = "MCP server for evaluating designs and code against compliance frameworks (NIST CSF 2.0, 800-53)"
+   AFTER:  description = "MCP server for compliance framework lookup, search, documentation, and gap analysis (NIST CSF 2.0, 800-53)"
+
+2. src/compliance_oracle/server.py (line 17)
+   BEFORE: instructions="MCP server for evaluating designs and code against compliance frameworks (NIST CSF 2.0, 800-53)",
+   AFTER:  instructions="MCP server for compliance framework lookup, search, documentation, and gap analysis (NIST CSF 2.0, 800-53)",
+
+FILES REVIEWED BUT NOT CHANGED
+================================================================================
+
+3. README.md (lines 7-10)
+   ALREADY ACCURATE: "Compliance Oracle is an MCP server that provides tools for working with compliance frameworks..."
+   No changes needed - description accurately reflects current capabilities.
+
+4. AGENTS.md (lines 7-10)
+   ALREADY ACCURATE: "ComplianceOracle is a Python-based MCP server that provides compliance framework tooling..."
+   No changes needed - description accurately reflects current capabilities.
+
+VERIFICATION
+================================================================================
+
+Command: grep -n "evaluating designs and code" README.md AGENTS.md src/compliance_oracle/server.py pyproject.toml
+Result: (no output - 0 matches)
+
+Status: VERIFIED - No false "evaluating designs and code" claims remain in any file.
+
+GAPS ADDRESSED
+================================================================================
+
+- GAP-001 (TRUST): evaluate_compliance tool claimed but not implemented
+  Resolution: Removed claim from package metadata and server instructions
+
+- GAP-007 (TRUST): Package description claimed "evaluating designs and code"
+  Resolution: Updated to accurate description of current capabilities
+
+CURRENT CAPABILITIES (NOW ACCURATELY DOCUMENTED)
+================================================================================
+
+- Framework lookup (list_frameworks, list_controls, get_control_details, get_control_context)
+- Semantic search (search_controls)
+- Documentation tracking (document_compliance, link_evidence, get_documentation, export_documentation)
+- Cross-framework mappings (compare_frameworks, get_guidance, get_framework_gap)
+- Assessment templates (get_assessment_questions)
+
+FUTURE CAPABILITIES (ROADMAP ONLY)
+================================================================================
+
+The following remain in the README roadmap section only:
+- evaluate_compliance tool (design doc describes, not implemented)
+- Agent Mode for evaluating designs/code against controls
+- LLM-based compliance evaluation
+
+================================================================================
+END OF EVIDENCE
+================================================================================

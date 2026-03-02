@@ -1,15 +1,17 @@
 """Search tools using RAG for semantic search over frameworks."""
 
+from typing import Any
+
 from fastmcp import FastMCP
 
-from compliance_oracle.rag.search import ControlSearcher
 from compliance_oracle.models.schemas import SearchResponse
+from compliance_oracle.rag.search import ControlSearcher
 
 
 def register_search_tools(mcp: FastMCP) -> None:
     """Register search tools with the MCP server."""
 
-    @mcp.tool()
+    @mcp.tool()  # type: ignore[untyped-decorator]
     async def search_controls(
         query: str,
         framework: str | None = None,
@@ -47,13 +49,13 @@ def register_search_tools(mcp: FastMCP) -> None:
             total_results=len(results),
         )
 
-    @mcp.tool()
+    @mcp.tool()  # type: ignore[untyped-decorator]
     async def get_control_context(
         control_id: str,
         framework: str = "nist-csf-2.0",
         include_siblings: bool = True,
         include_related: bool = True,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get full context for a control including hierarchy and relationships.
 
         Args:

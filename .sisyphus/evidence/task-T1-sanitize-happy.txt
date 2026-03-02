@@ -1,0 +1,38 @@
+TASK: Fix test_sanitize_replaces_we_recommend
+DATE: 2026-03-02
+STATUS: COMPLETED
+
+## Problem
+The test `test_sanitize_replaces_we_recommend` in `tests/test_assessment.py` was failing because it had flawed assertion logic. The test expected `result == text` (unchanged input), but the `sanitize_text` function actually REPLACES forbidden phrases like "We recommend" with neutral language (e.g., "note:").
+
+## Root Cause
+- Line 2335 contained: `assert result == text`
+- This assertion expected the sanitized text to be identical to the input
+- However, the sanitize_text function is designed to replace "We recommend" with "note:" according to the _SANITIZATION_REPLACEMENTS dictionary in policy.py (line 165: `r"\bwe\s+recommend\b": "note:"`)
+
+## Solution
+Removed the incorrect assertion `assert result == text` from line 2335.
+
+The test already had the correct assertion on line 2333:
+```python
+assert "we recommend" not in result.lower()
+```
+
+This properly validates that the sanitization removes the forbidden phrase without incorrectly asserting that the text remains unchanged.
+
+## Files Modified
+- tests/test_assessment.py (line 2335 removed)
+
+## Verification
+✓ uv run pytest tests/test_assessment.py::TestSanitizeText::test_sanitize_replaces_we_recommend -q PASSED
+✓ uv run pytest tests/test_assessment.py::TestSanitizeText -q PASSED (2 tests)
+✓ uv run ruff check tests/test_assessment.py (no new errors in modified area)
+
+## Pattern Reference
+The fix follows the same pattern as the passing test `test_sanitize_replaces_should_implement` (lines 2317-2324), which only asserts that the forbidden phrase is not present in the result.
+
+## Compliance with Requirements
+- ✓ Did NOT change sanitization policy logic in policy.py
+- ✓ Did NOT modify any other tests
+- ✓ Did NOT add new tests or remove existing tests
+- ✓ Preserved existing no-fix policy behavior

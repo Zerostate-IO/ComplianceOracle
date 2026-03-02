@@ -1,0 +1,59 @@
+# Task T11: Hybrid Parity, Outage, and Policy Regression Suite
+
+## Objective
+Build comprehensive regression tests verifying:
+1. Deterministic-vs-hybrid parity (same input = same control status/gaps)
+2. Hard-degrade behavior under Ollama failure
+3. Malformed LLM output handling
+4. Explicit no-fix policy enforcement
+
+## Test Classes Added to tests/test_assessment.py
+
+### 1. TestHybridDeterministicParity (4 tests)
+- test_parity_control_status_identical - Same input produces identical maturity_level
+- test_parity_gaps_identical_with_llm_failure - Hybrid with LLM failure = deterministic gaps
+- test_parity_evaluation_findings_identical - Evaluation findings identical across modes
+- test_parity_llm_cannot_change_maturity - LLM cannot override deterministic assessment
+
+### 2. TestHardDegradeBehavior (6 tests)
+- test_degrade_timeout_returns_deterministic_results - Timeout → ollama_timeout reason
+- test_degrade_connection_error_returns_deterministic_results - Connection error → ollama_unreachable
+- test_degrade_circuit_open_returns_deterministic_results - Circuit open → circuit_open reason
+- test_degrade_malformed_response_returns_deterministic_results - Invalid JSON → ollama_malformed_response
+- test_degrade_missing_response_field_returns_deterministic_results - Missing field → ollama_malformed_response
+- test_degrade_evaluation_timeout_returns_deterministic_results - Evaluation timeout handling
+
+### 3. TestPolicyEnforcementRegression (8 tests)
+- test_policy_you_should_implement_blocked_in_assess
+- test_policy_we_recommend_blocked_in_assess
+- test_policy_to_fix_this_blocked_in_assess
+- test_policy_you_must_blocked_in_evaluation
+- test_policy_consider_implementing_blocked
+- test_policy_sanitized_output_does_not_contain_forbidden_phrases
+- test_policy_allowed_gap_language_passes
+
+## Key Implementation Patterns
+
+All tests use httpx_mock for mocking Ollama calls - NO live Ollama calls in CI.
+
+```python
+from compliance_oracle.assessment.config import IntelligenceConfig
+from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+from compliance_oracle.assessment.contracts import DegradeReason
+```
+
+## Verification Results
+
+```
+uv run pytest tests/ -k "hybrid or degrade or policy" -v
+================ 58 passed, 433 deselected, 6 warnings in 4.72s ================
+```
+
+## Constraints Met
+- ✅ No live Ollama calls in CI (all use httpx_mock)
+- ✅ No new production code added (only tests)
+- ✅ No modification to existing passing tests
+- ✅ Evidence file created in .sisyphus/evidence/
+
+## Status: COMPLETE

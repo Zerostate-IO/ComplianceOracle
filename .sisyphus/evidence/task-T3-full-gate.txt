@@ -1,0 +1,14 @@
+=== RUFF CHECK (F401 only on orchestrator.py) ===
+All checks passed!
+
+=== MYPY ON ORCHESTRATOR.PY ===
+src/compliance_oracle/assessment/orchestrator.py:440: error: Argument "degrade_reason" to "create_degraded_metadata" has incompatible type "DegradeReason | None"; expected "DegradeReason"  [arg-type]
+src/compliance_oracle/assessment/orchestrator.py:545: error: Argument "degrade_reason" to "create_degraded_metadata" has incompatible type "DegradeReason | None"; expected "DegradeReason"  [arg-type]
+Found 2 errors in 1 file (checked 1 source file)
+
+=== PYTEST (assessment + tool_contracts) ===
+........................................................................ [ 29%]
+........................................................................ [ 59%]
+........................................................................ [ 89%]
+.........................                                                [100%]
+241 passed in 6.16s

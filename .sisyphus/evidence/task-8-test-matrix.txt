@@ -1,0 +1,220 @@
+================================================================================
+COMPLIANCE ORACLE - TEST ARCHITECTURE BASELINE & PRIORITIZED TEST MATRIX
+================================================================================
+Generated: 2026-02-28
+Task: Create Test Architecture Baseline and Prioritized Test Matrix
+================================================================================
+
+SECTION 1: MODULE RISK PRIORITIZATION
+================================================================================
+
+Priority ranking based on:
+- Criticality: How essential is this module to core functionality?
+- Usage Frequency: How often is this module called?
+- Complexity: How complex is the logic?
+- Dependencies: How many other modules depend on this?
+
+| Priority | Module            | Risk Score | Criticality | Usage | Complexity | Dependencies |
+|----------|-------------------|------------|-------------|-------|------------|--------------|
+| 1        | lookup.py         | HIGH       | Critical    | High  | Medium     | 3 tools      |
+| 2        | search.py         | HIGH       | Critical    | High  | Medium     | 2 tools      |
+| 3        | documentation.py  | HIGH       | Critical    | High  | High       | 4 tools      |
+| 4        | framework_mgmt.py | MEDIUM     | Important   | Med   | High       | 3 tools      |
+| 5        | assessment.py     | LOW        | Useful      | Low   | Medium     | 1 tool       |
+
+RISK RATIONALE:
+
+1. lookup.py (HIGH - Core)
+   - Foundation for all other tools
+   - Used by search, documentation, framework_mgmt
+   - Must work correctly or entire system fails
+   - Test Focus: list_frameworks, list_controls, get_control_details
+
+2. search.py (HIGH - RAG Integration)
+   - Primary user interaction path
+   - Depends on external ChromaDB
+   - Semantic search accuracy critical
+   - Test Focus: search_controls, get_control_context
+
+3. documentation.py (HIGH - State Management)
+   - Persists compliance state
+   - Multiple write operations
+   - Evidence linking complexity
+   - Test Focus: document_compliance, link_evidence, get_documentation, export_documentation
+
+4. framework_mgmt.py (MEDIUM - Gap Analysis)
+   - Cross-framework mappings
+   - Gap analysis logic
+   - Important but lower frequency
+   - Deferred: Not in initial test baseline
+
+5. assessment.py (LOW - Interview Mode)
+   - Generates interview questions
+   - No state mutations
+   - Can be tested later
+   - Deferred: Not in initial test baseline
+
+================================================================================
+SECTION 2: TEST FILE STRUCTURE
+================================================================================
+
+Created Files:
+- tests/conftest.py          - Shared fixtures and mock objects
+- tests/test_lookup.py       - Lookup tool tests (9 tests)
+- tests/test_search.py       - Search tool tests (9 tests)
+- tests/test_documentation.py - Documentation tool tests (15 tests)
+
+Total Test Functions: 33 (target was >= 13)
+
+================================================================================
+SECTION 3: TEST COVERAGE BY TOOL
+================================================================================
+
+LOOKUP TOOLS (tests/test_lookup.py)
+-----------------------------------
+list_frameworks:
+  - test_list_frameworks_happy_path      [HAPPY]
+  - test_list_frameworks_empty           [EDGE]
+
+list_controls:
+  - test_list_controls_happy_path        [HAPPY]
+  - test_list_controls_with_function_filter [FILTER]
+  - test_list_controls_with_category_filter [FILTER]
+  - test_list_controls_empty_framework   [EDGE]
+
+get_control_details:
+  - test_get_control_details_happy_path  [HAPPY]
+  - test_get_control_details_not_found   [EDGE]
+  - test_get_control_details_includes_mappings [FEATURE]
+
+SEARCH TOOLS (tests/test_search.py)
+-----------------------------------
+search_controls:
+  - test_search_controls_happy_path      [HAPPY]
+  - test_search_controls_with_framework_filter [FILTER]
+  - test_search_controls_with_limit      [PARAM]
+  - test_search_controls_empty_results   [EDGE]
+  - test_search_controls_multiple_results [FEATURE]
+
+get_control_context:
+  - test_get_control_context_happy_path  [HAPPY]
+  - test_get_control_context_includes_siblings [FEATURE]
+  - test_get_control_context_includes_related [FEATURE]
+  - test_get_control_context_not_found   [EDGE]
+  - test_get_control_context_excludes_siblings_when_disabled [PARAM]
+
+DOCUMENTATION TOOLS (tests/test_documentation.py)
+-------------------------------------------------
+document_compliance:
+  - test_document_compliance_happy_path  [HAPPY]
+  - test_document_compliance_partial_status [STATUS]
+  - test_document_compliance_with_all_fields [FEATURE]
+  - test_document_compliance_not_applicable [STATUS]
+
+link_evidence:
+  - test_link_evidence_happy_path        [HAPPY]
+  - test_link_evidence_with_line_range   [FEATURE]
+  - test_link_evidence_url_type          [TYPE]
+  - test_link_evidence_control_not_documented [ERROR]
+
+get_documentation:
+  - test_get_documentation_happy_path    [HAPPY]
+  - test_get_documentation_with_filters  [FILTER]
+  - test_get_documentation_empty_state   [EDGE]
+
+export_documentation:
+  - test_export_documentation_markdown   [FORMAT]
+  - test_export_documentation_json       [FORMAT]
+  - test_export_documentation_with_evidence [FEATURE]
+  - test_export_documentation_with_gaps  [FEATURE]
+
+================================================================================
+SECTION 4: FIXTURE INVENTORY (tests/conftest.py)
+================================================================================
+
+Sample Data Fixtures:
+- sample_framework_info      - FrameworkInfo for nist-csf-2.0
+- sample_control             - Control for PR.AC-01
+- sample_control_details     - ControlDetails with mappings
+- sample_search_result       - SearchResult with relevance score
+- sample_control_documentation - ControlDocumentation with status
+- sample_evidence            - Evidence with line range
+
+Mock Fixtures:
+- mock_framework_manager     - Mocked FrameworkManager
+- mock_control_searcher      - Mocked ControlSearcher  
+- mock_state_manager         - Mocked ComplianceStateManager
+
+Utility Fixtures:
+- temp_project_path          - Temporary directory for file tests
+
+================================================================================
+SECTION 5: TESTING PATTERNS USED
+================================================================================
+
+1. Mock-based Unit Testing
+   - All tests use mocks to avoid external dependencies
+   - No real NIST data or ChromaDB required
+   - Fast, isolated test execution
+
+2. AsyncMock for Async Operations
+   - All manager methods are async
+   - Using AsyncMock for proper async testing
+   - pytest asyncio_mode = "auto"
+
+3. Pydantic Model Validation
+   - Tests verify Pydantic model construction
+   - Invalid inputs would fail at model creation
+   - Tests focus on business logic, not validation
+
+4. Fixture Composition
+   - Complex objects built from simpler fixtures
+   - sample_control_details depends on sample_control
+   - Promotes consistency across tests
+
+================================================================================
+SECTION 6: DEFERRED COVERAGE (Future Tasks)
+================================================================================
+
+Not included in initial baseline:
+
+1. framework_mgmt.py tools:
+   - compare_frameworks
+   - get_framework_gap
+   - get_guidance
+
+2. assessment.py tools:
+   - get_assessment_questions
+
+3. Integration tests:
+   - End-to-end tool registration
+   - Real ChromaDB operations
+   - File system state persistence
+
+4. Error handling edge cases:
+   - Invalid status values
+   - Malformed evidence paths
+   - Concurrent state modifications
+
+================================================================================
+SECTION 7: VERIFICATION COMMANDS
+================================================================================
+
+# Verify test discovery
+pytest --collect-only
+
+# Run all tests
+pytest -v
+
+# Run with coverage
+pytest --cov=compliance_oracle --cov-report=term-missing
+
+# Run specific test file
+pytest tests/test_lookup.py -v
+
+# Run tests matching pattern
+pytest -k "search" -v
+
+================================================================================
+END OF TEST MATRIX
+================================================================================

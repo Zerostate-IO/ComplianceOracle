@@ -1,0 +1,146 @@
+# Documentation Surface Inventory and Claim Map
+# Task 1: Build Documentation Surface Inventory
+# Generated: 2026-02-28
+# Source: Wave 1, Task 1 - Project Documentation Gap Roadmap
+
+================================================================================
+## VERIFICATION: Grep Results for "Compliance Oracle"
+================================================================================
+
+Files containing "Compliance Oracle":
+- README.md: 7 occurrences (lines 1, 7, 83, 116, 120, 154, 195)
+- AGENTS.md: 3 occurrences (lines 3, 59, 116)
+- PROJECT_DESIGN_DRAFT.md: 6 occurrences (lines 1, 11, 22, 36, 1763, 1835)
+- pyproject.toml: 0 occurrences (package name is "compliance-oracle", not "Compliance Oracle")
+
+STATUS: All four documentation files captured.
+
+================================================================================
+## VERIFICATION: Grep Results for "evaluate"
+================================================================================
+
+Files containing "evaluate":
+- PROJECT_DESIGN_DRAFT.md: 15+ occurrences (extensive)
+- pyproject.toml: 1 occurrence (line 4 in description)
+
+Files NOT containing "evaluate":
+- README.md: 0 occurrences
+- AGENTS.md: 0 occurrences
+
+FINDING: Significant documentation gap - evaluate_compliance tool is specified
+in PROJECT_DESIGN_DRAFT.md but NOT mentioned in README.md tools catalog.
+
+================================================================================
+## CLAIM INVENTORY TABLE
+================================================================================
+
+| Claim ID | Source File        | Line(s) | Claim Type        | Claim Text Summary                                                    | Status  |
+|----------|-------------------|---------|-------------------|-----------------------------------------------------------------------|---------|
+| C001     | README.md         | 7-8     | Purpose           | "Compliance Oracle is an MCP server that provides tools for working with compliance frameworks (such as NIST CSF 2.0 and NIST SP 800-53 Rev. 5)" | PRESENT |
+| C002     | README.md         | 12      | Capability        | "Semantic search across framework controls via RAG/ChromaDB"          | PRESENT |
+| C003     | README.md         | 13      | Capability        | "Documentation mode for tracking implementation status and evidence"  | PRESENT |
+| C004     | README.md         | 14      | Capability        | "Cross-framework gap analysis (CSF -> 800-53) using relationship-aware mappings" | PRESENT |
+| C005     | README.md         | 15      | Capability        | "A CLI for fetching, indexing, validating, and exporting data"        | PRESENT |
+| C006     | README.md         | 131-149 | Tool Catalog      | MCP tools table lists 12 tools: list_frameworks, list_controls, search_controls, get_control_details, document_compliance, link_evidence, get_documentation, export_documentation, compare_frameworks, get_guidance, get_control_context, get_framework_gap | PRESENT |
+| C007     | README.md         | 231-277 | Roadmap           | Multi-version roadmap: 0.x (MCP server + CLI), 0.1.x (Assessment API), 1.x-2.x (Assessment flows), 3.x (Web UI), 4.0 (Multi-tenant) | PRESENT |
+| C008     | README.md         | 150     | Schema Reference  | "See src/compliance_oracle/models/schemas.py for complete response schemas" | PRESENT |
+| C009     | README.md         | 152-176 | Status Model      | Direct vs derived status, relationship types (equivalent, broader, narrower, related) | PRESENT |
+| C010     | README.md         | 224-229 | Data Sources      | NIST CSF 2.0 and 800-53 source URLs, embeddings model, state file path | PRESENT |
+| C011     | AGENTS.md         | 7-10    | Purpose           | "ComplianceOracle is a Python-based MCP server that provides compliance framework tooling (NIST CSF 2.0, NIST SP 800-53 Rev. 5) for OpenCode/OhMyOpenCode and other MCP-compatible clients" | PRESENT |
+| C012     | AGENTS.md         | 9-10    | Scope             | "focuses on semantic search, documentation state, evidence management, and cross-framework mappings" | PRESENT |
+| C013     | AGENTS.md         | 35-43   | Architecture Map  | "Where to look" table mapping tasks to source locations                | PRESENT |
+| C014     | AGENTS.md         | 45-51   | Conventions       | Python 3.12+, uv, strict typing (mypy), Ruff linter, state file location, framework data source | PRESENT |
+| C015     | AGENTS.md         | 55-68   | Agent Config      | TypeScript agent configuration template with triggers                  | PRESENT |
+| C016     | AGENTS.md         | 74-97   | Commands          | Common CLI commands (sync, fetch, index, status, server, dev helpers) | PRESENT |
+| C017     | AGENTS.md         | 99-105  | Gotchas           | Fetch requirement before search, RAG index rebuild, MCP delegation pattern | PRESENT |
+| C018     | PROJECT_DESIGN_DRAFT.md | 11-13 | Core Purpose | "The Compliance Oracle is an MCP server designed to evaluate design documents and code against compliance frameworks... serves as a code review auditor" | PRESENT |
+| C019     | PROJECT_DESIGN_DRAFT.md | 14    | Core Principle    | "Identify what isn't compliant and why. Never suggest fixes."          | PRESENT |
+| C020     | PROJECT_DESIGN_DRAFT.md | 22-29 | Operating Modes   | Three modes: Agent Mode, Interactive Mode, Documentation Mode         | PRESENT |
+| C021     | PROJECT_DESIGN_DRAFT.md | 30    | Lifecycle         | "evaluate -> document -> export" lifecycle                            | PRESENT |
+| C022     | PROJECT_DESIGN_DRAFT.md | 127   | Tool: evaluate_   | Architecture diagram shows "evaluate_compliance" in AGENT MODE column  | PRESENT |
+| C023     | PROJECT_DESIGN_DRAFT.md | 172-173 | LLM-Optional    | "Some tools require LLM reasoning (like evaluate_compliance), while others are pure data retrieval" | PRESENT |
+| C024     | PROJECT_DESIGN_DRAFT.md | 187-276 | Tool Spec       | evaluate_compliance full specification: input schema, output schema, example output with findings | PRESENT |
+| C025     | PROJECT_DESIGN_DRAFT.md | 1213  | Tool Summary      | "evaluate_compliance | Agent | Yes | Evaluate design/code for violations" | PRESENT |
+| C026     | PROJECT_DESIGN_DRAFT.md | 1533  | Implementation    | Phase 3 task: "Implement evaluate_compliance tool"                    | PRESENT |
+| C027     | pyproject.toml    | 4       | Package Desc      | "MCP server for evaluating designs and code against compliance frameworks (NIST CSF 2.0, 800-53)" | PRESENT |
+| C028     | pyproject.toml    | 3       | Version           | version = "0.1.3"                                                     | PRESENT |
+| C029     | pyproject.toml    | 7       | Python Version    | requires-python = ">=3.12,<3.14"                                      | PRESENT |
+| C030     | pyproject.toml    | 20-28   | Dependencies      | fastmcp, chromadb, sentence-transformers, pydantic, httpx, click, rich | PRESENT |
+
+================================================================================
+## CLAIM CROSS-REFERENCE: evaluate_compliance
+================================================================================
+
+| Source                | Claim Present? | Line(s) | Details                                    |
+|-----------------------|----------------|---------|--------------------------------------------|
+| PROJECT_DESIGN_DRAFT  | YES            | 127, 172, 187-276, 1213, 1533, 1588 | Full specification, architecture, implementation task |
+| README.md             | NO             | -       | NOT in tools table (lines 131-149)         |
+| AGENTS.md             | NO             | -       | NOT mentioned in tools overview            |
+| pyproject.toml        | PARTIAL        | 4       | Description says "evaluating designs" but tool not named |
+
+GAP IDENTIFIED: evaluate_compliance is a core claimed capability in design doc
+and package description, but absent from user-facing README.md tools catalog.
+
+================================================================================
+## CLAIM CROSS-REFERENCE: Assessment/Interview API
+================================================================================
+
+| Source                | Claim Present? | Line(s) | Details                                    |
+|-----------------------|----------------|---------|--------------------------------------------|
+| README.md             | YES            | 239-243 | "Assessment/interview templates exposed via get_assessment_questions" |
+| PROJECT_DESIGN_DRAFT  | YES            | 450-518 | assess_control tool specification          |
+| PROJECT_DESIGN_DRAFT  | YES            | 721-805 | interview_control tool specification       |
+
+================================================================================
+## CLAIM CROSS-REFERENCE: Framework Support
+================================================================================
+
+| Source                | NIST CSF 2.0 | NIST 800-53 | NIST 800-171 | SOC2 | ISO 27001 |
+|-----------------------|--------------|-------------|--------------|------|-----------|
+| README.md             | YES          | YES         | NO           | NO   | NO        |
+| AGENTS.md             | YES          | YES         | NO           | NO   | NO        |
+| PROJECT_DESIGN_DRAFT  | YES          | YES         | YES          | YES  | YES       |
+| pyproject.toml        | YES          | YES         | NO           | NO   | NO        |
+
+GAP IDENTIFIED: PROJECT_DESIGN_DRAFT claims broader framework support
+(800-171, SOC2, ISO 27001) not reflected in README or pyproject.toml.
+
+================================================================================
+## DOCUMENTATION FILES INVENTORY
+================================================================================
+
+| File                    | Lines | Purpose                        | Primary Audience   |
+|-------------------------|-------|--------------------------------|--------------------|
+| README.md               | 281   | User guide, quickstart, tools  | End users          |
+| AGENTS.md               | 106   | Project knowledge for agents   | AI agents/devs     |
+| PROJECT_DESIGN_DRAFT.md | 1800+ | Full design specification      | Architects/devs    |
+| pyproject.toml          | 64    | Package metadata, deps, config | Build tools        |
+
+================================================================================
+## KEY FINDINGS
+================================================================================
+
+1. CRITICAL GAP: evaluate_compliance tool is specified in PROJECT_DESIGN_DRAFT.md
+   and mentioned in pyproject.toml description, but NOT listed in README.md
+   MCP tools catalog (lines 131-149). Users reading README.md will not know
+   this tool exists.
+
+2. SCOPE MISMATCH: PROJECT_DESIGN_DRAFT.md claims support for NIST 800-171,
+   SOC2, and ISO 27001 frameworks, but README.md and pyproject.toml only
+   mention NIST CSF 2.0 and NIST 800-53.
+
+3. ROADMAP vs REALITY: README.md roadmap (lines 231-277) describes future
+   versions including assessment API (0.1.x), but does not list specific
+   tools that implement it in the current tools table.
+
+4. PRINCIPLE CLAIM: PROJECT_DESIGN_DRAFT.md line 14 claims core principle
+   "Identify what isn't compliant and why. Never suggest fixes." This
+   principle is not stated anywhere in README.md.
+
+5. LLM DEPENDENCY: PROJECT_DESIGN_DRAFT.md specifies that evaluate_compliance
+   requires LLM reasoning, but this dependency detail is absent from README.md
+   tool descriptions.
+
+================================================================================
+## END OF INVENTORY
+================================================================================

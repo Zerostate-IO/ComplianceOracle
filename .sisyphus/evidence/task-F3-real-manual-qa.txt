@@ -1,0 +1,43 @@
+=== F3. REAL MANUAL QA ===
+
+VERIFICATION: CLI and tool functionality work correctly
+
+CLI FUNCTIONALITY TESTS
+  ✓ Status command: uv run compliance-oracle status
+    - Output: Shows 4 frameworks loaded (nist-csf-2.0, nist-800-53-r5, nist-800-171-r2, soc2-tsc-2017)
+    - Vector store: nist-csf-2.0 and nist-800-53-r5 indexed
+    - Exit code: 0
+
+  ✓ Search command: uv run compliance-oracle search "encryption"
+    - Output: Returns 10 relevant controls with scores
+    - Results include SC-12, SC-13, SC-09, SC-08, PL-08, PR.DS-10, PR.DS-02, IA-07, PR.DS-01, PL-02
+    - Exit code: 0
+
+  ✓ Show command: uv run compliance-oracle show "PR.AC-01"
+    - Output: Shows control details (Framework, Function, Category, Description)
+    - Content: "Identities and credentials are issued, managed, verified, revoked, and audited..."
+    - Exit code: 0
+
+TOOL FUNCTIONALITY TESTS
+  ✓ MCP server imports: from compliance_oracle.server import mcp
+    - Result: OK (no import errors)
+
+  ✓ T1 Sanitize function: sanitize_text('We recommend implementing MFA', ['recommend'])
+    - Result: "note: implementing MFA"
+    - Behavior: Correctly replaces 'We recommend' with 'note:'
+    - Exit code: 0
+
+  ✓ T2 Datetime function: ComplianceState().created_at.tzinfo
+    - Result: UTC (timezone-aware)
+    - Behavior: Correctly uses timezone.utc instead of deprecated utcnow()
+    - Exit code: 0
+
+MANUAL QA SUMMARY
+  ✓ CLI commands execute without errors
+  ✓ Search functionality returns relevant results
+  ✓ Control details display correctly
+  ✓ Sanitize function works as expected (T1)
+  ✓ Datetime handling is timezone-aware (T2)
+  ✓ No runtime errors or exceptions
+
+VERDICT: PASS — Manual QA verified. All CLI and tool functionality works correctly.

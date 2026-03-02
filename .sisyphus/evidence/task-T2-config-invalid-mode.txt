@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/Users/legend/projects/ComplianceOracle/src/compliance_oracle/assessment/config.py", line 106, in load_intelligence_config
+    return IntelligenceConfig(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/Users/legend/projects/ComplianceOracle/.venv/lib/python3.12/site-packages/pydantic/main.py", line 250, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for IntelligenceConfig
+intelligence_mode
+  Input should be 'deterministic' or 'hybrid' [type=literal_error, input_value='invalid', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/literal_error

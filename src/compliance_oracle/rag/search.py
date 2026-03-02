@@ -1,7 +1,7 @@
 """RAG-based semantic search for compliance controls using ChromaDB."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import chromadb
 from chromadb.config import Settings
@@ -174,7 +174,7 @@ class ControlSearcher:
             metadatas = results["metadatas"][0] if results["metadatas"] else []
             distances = results["distances"][0] if results["distances"] else []
 
-            for i, doc_id in enumerate(ids):
+            for i, _doc_id in enumerate(ids):
                 metadata = metadatas[i] if i < len(metadatas) else {}
                 distance = distances[i] if i < len(distances) else 1.0
 
@@ -298,7 +298,7 @@ class ControlSearcher:
             )
             return len(results["ids"]) if results["ids"] else 0
         else:
-            return collection.count()
+            return cast(int, collection.count())
 
     async def clear_index(self, framework_id: str | None = None) -> int:
         """Clear indexed controls.
@@ -323,7 +323,7 @@ class ControlSearcher:
             return 0
         else:
             # Clear entire collection
-            count = collection.count()
+            count = cast(int, collection.count())
             client = self._get_client()
             client.delete_collection(self.COLLECTION_NAME)
             self._collection = None

@@ -146,3 +146,137 @@ src/compliance_oracle/assessment/
 - `latency_ms: int` - always present, even for errors
 - `model: str | None` - preserves Ollama model name on success
 - Compatible with DegradeReason.POLICY_VIOLATION
+
+## 2026-03-01 (T9 - Export Metadata Parity)
+
+### Implementation Patterns
+- Add optional metadata fields to Pydantic models with `Field(default=None)`
+- For JSON export, use `model_dump(mode="json")` and pop None values to maintain backward compatibility
+- For Markdown export, check `if doc.intelligence_metadata is not None` before adding section
+- Metadata section should include only non-None optional fields
+
+### Backward Compatibility Strategy
+- JSON export: Pop `intelligence_metadata` key when value is None (line ~255)
+- Markdown export: Only add "Analysis Metadata" section when metadata exists
+- Tests verify both "with metadata" and "without metadata" paths
+
+### Test Patterns
+- Test JSON export with metadata includes the key
+- Test JSON export without metadata excludes the key (backward compat)
+- Test Markdown export with metadata includes the section
+- Test Markdown export without metadata excludes the section
+- Test minimal metadata (only required fields) and full metadata (all fields)
+- Test persistence to state.json file
+
+### Files Modified
+- `src/compliance_oracle/models/schemas.py` - Added `intelligence_metadata: IntelligenceMetadata | None` to ControlDocumentation
+- `src/compliance_oracle/documentation/state.py` - Updated `_export_json` and `_export_markdown` to handle metadata
+- `tests/test_documentation.py` - Added 14 new tests for metadata export
+
+### Key Constraints
+- Metadata is completely optional - exports work without it
+- Never require metadata for export to succeed
+- Maintain existing field names and types for backward compatibility
+- Never require metadata for export to succeed
+- Maintain existing field names and types for backward compatibility
+
+## 2026-03-01 (T6 - Orchestrator Integration into assess_control)
+
+### Implementation Patterns
+- Import orchestrator components at module level: `IntelligenceConfig`, `IntelligenceOrchestrator`, `OllamaClient`
+- Create fresh config and client instances inside the tool function when `evaluate_response=True`
+- Build context dict with `control_name` and `framework_id` from control details
+- Call `orchestrator.assess(control_id, response, context)` instead of direct deterministic logic
+- Map OrchestratorResult fields to response dict preserving all existing keys
+
+### Backward Compatibility Strategy
+- All existing response fields preserved: control_id, control_name, framework_id, maturity_level, strengths, gaps, recommendations
+- New metadata fields added: analysis_mode, llm_used, degrade_reason
+- Optional LLM enrichment fields only added when present: llm_rationale, llm_context, policy_violations, latency_ms
+- Question-only mode (`evaluate_response=False`) completely unchanged
+
+### Control Not Found Handling
+- Check control_details before creating orchestrator
+- Return error dict with all expected fields on not found: error, control_id, control_name, framework_id, maturity_level, strengths, gaps, recommendations
+
+### Test Patterns
+- Test metadata fields are present in response
+- Test deterministic-only mode works when Ollama unavailable (mock OllamaClient to fail)
+- Test control not found returns error dict
+- Test question-only mode unchanged (existing test)
+- Test missing response returns error (existing test)
+
+### Files Modified
+- `src/compliance_oracle/tools/assessment.py` - Added imports, modified assess_control function
+- `tests/test_assessment.py` - Added 3 new tests for orchestrator integration
+
+### Key Constraints
+- LLM can NEVER change deterministic control status or gap detection
+- Orchestrator always runs deterministic assessment first
+- Hard-degrade on any LLM failure returns deterministic result with metadata
+- Tool name and arguments unchanged for MCP compatibility
+
+
+## 2026-03-01 (T8 - Interview Submit with Hybrid Metadata)
+
+### Implementation Patterns
+- Use the same orchestrator integration pattern from T6 in `_interview_submit`
+- Create config, client, orchestrator inside the submit function
+- Build context dict with `control_name` and `framework_id` from control details
+- Call `orchestrator.assess(control_id, response, context)` for hybrid enrichment
+- Use orchestrator's maturity assessment (more accurate than local heuristic)
+- Extract strengths, gaps, recommendations from orchestrator result
+- Use LLM-enriched rationale/context when available for implementation summary
+
+### Metadata Fields Added to Submit Response
+- `analysis_mode`: "deterministic" or "hybrid" from orchestrator metadata
+- `llm_used`: boolean indicating if LLM enrichment was successful
+- `degrade_reason`: DegradeReason enum or None if no degradation
+- Optional: `llm_rationale`, `llm_context`, `policy_violations`, `latency_ms`
+
+### Backward Compatibility Strategy
+- All existing response fields preserved: control_id, status, recorded, evidence_linked, assessed_maturity, follow_up_recommendations
+- New metadata fields added at response root level
+- `start` and `skip` modes completely unchanged (no Ollama required)
+- Only `submit` mode uses orchestrator for enrichment
+
+### Recorded Details Enhancement
+- Added `strengths` to recorded dict if present from orchestrator
+- Added `gaps` to recorded dict if present from orchestrator
+- Implementation summary uses LLM-enriched text when available
+
+### Test Patterns
+- Test metadata fields are present in submit response
+- Test deterministic-only mode works when Ollama unavailable (mock OllamaClient)
+- Test start and skip modes unchanged (existing tests)
+- Test invalid mode error handling (existing test)
+
+### Files Modified
+- `src/compliance_oracle/tools/assessment.py` - Modified `_interview_submit` function
+- `tests/test_assessment.py` - Added 2 new tests for submit with metadata
+
+### Key Constraints
+- Policy guard applied automatically by orchestrator via `enforce_no_fix_policy`
+- LLM can NEVER change deterministic maturity level or status
+- Only enrichment text (rationale, context) can be modified by LLM
+- Hard-degrade on any LLM failure returns deterministic result with metadata
+
+## 2026-03-01 (T13 - LaTeX Reporting Spec)
+
+### Spec Document Patterns
+- Use "Deferred" status prominently at document top
+- Include explicit "No implementation" statement to prevent scope creep
+- Define data contract referencing actual source files with line numbers
+- Include acceptance gates as checklist format for future verification
+- Add non-goals section to document what is explicitly out of scope
+
+### Documentation Structure
+- Six core sections: Scope, Data Contract, Template Contract, Non-Goals, Acceptance Gates, Implementation Notes
+- Appendices for examples and configuration schemas
+- Entry criteria section links to roadmap prerequisites
+- Risk factors section documents known challenges
+
+### Cross-Reference Pattern
+- Add deferred specs to README roadmap as new subsection
+- Use table format with Spec link, Title, Description, Target columns
+- Place after Enhancement Epics, before Version Milestones

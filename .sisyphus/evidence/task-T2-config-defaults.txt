@@ -1,0 +1,8 @@
+=== Default Config Happy Path ===
+intelligence_mode: hybrid
+hard_degrade: True
+ollama_base_url: http://localhost:11434
+ollama_model: llama3.2
+timeout_budget_seconds: 30.0
+circuit_breaker_threshold: 3
+circuit_breaker_reset_seconds: 60.0

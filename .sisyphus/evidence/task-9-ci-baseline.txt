@@ -1,0 +1,58 @@
+# CI Workflow Baseline Evidence
+## Task 9: Implement CI Workflow for Lint, Typecheck, and Tests
+## Date: 2026-02-28
+
+### Files Created
+- `.github/workflows/ci.yml` - GitHub Actions workflow
+
+### Workflow Configuration
+- **Triggers**: push to main, pull_request
+- **Python version**: 3.12
+- **Package manager**: uv (astral-sh/setup-uv@v5)
+
+### CI Steps
+1. Checkout repository
+2. Install uv (with caching enabled)
+3. Set up Python 3.12
+4. Install dependencies (`uv sync`)
+5. Run ruff lint (`uv run ruff check`)
+6. Run mypy typecheck (`uv run mypy src/`)
+7. Run pytest (`uv run pytest`)
+
+### Verification Results
+
+#### YAML Syntax
+```
+$ uv run python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
+YAML: PARSES OK
+```
+
+#### Local Command Sequence
+
+**Ruff (28 existing issues in codebase - not CI workflow related):**
+```
+Found 28 errors in scripts/fetch_nist_data.py, src/compliance_oracle/cli.py, 
+src/compliance_oracle/frameworks/mapper.py, src/compliance_oracle/models/schemas.py,
+src/compliance_oracle/rag/search.py, src/compliance_oracle/server.py,
+src/compliance_oracle/tools/documentation.py, src/compliance_oracle/tools/lookup.py,
+src/compliance_oracle/tools/search.py, tests/conftest.py, tests/test_documentation.py,
+tests/test_lookup.py, tests/test_search.py
+```
+
+**Mypy (32 existing issues in codebase - not CI workflow related):**
+```
+Found 32 errors in 9 files (checked 18 source files)
+Issues: import-not-found for fastmcp/chromadb, untyped-decorator, no-any-return, type-arg
+```
+
+**Pytest (PASS):**
+```
+34 passed, 10 warnings in 0.70s
+```
+
+### Notes
+- Existing ruff and mypy errors are pre-existing in the codebase
+- CI workflow correctly configured to catch these issues on PR/push
+- Pytest baseline: 34 passing tests (confirmed from Task 8)
+- No caching introduced yet (keep it simple per task requirements)
+- Uses astral-sh/setup-uv action for deterministic uv setup

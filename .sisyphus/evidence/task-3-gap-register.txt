@@ -1,0 +1,241 @@
+================================================================================
+COMPLIANCE ORACLE - PURPOSE/BEHAVIOR GAP REGISTER
+================================================================================
+Generated: 2026-02-28
+Task: 3 - Produce Purpose/Behavior Gap Register with Risk Disposition
+Source: Cross-reference of Task 1 (Doc Surface) and Task 2 (Runtime Baseline)
+================================================================================
+
+RISK CLASSIFICATION LEGEND
+================================================================================
+| Class           | Definition                                          |
+|-----------------|-----------------------------------------------------|
+| correctness     | Factual error; wrong count, wrong name, wrong value |
+| semantic_drift  | Meaning or intent diverges between docs and reality |
+| operability     | Feature exists but is hidden/unusable from user POV |
+| trust           | Claimed capability does not exist at all            |
+
+DISPOSITION LEGEND
+================================================================================
+| Disposition       | Action Required                                    |
+|-------------------|---------------------------------------------------|
+| fix_now           | Immediate correction required (blocking issue)    |
+| schedule          | Plan to fix in next release cycle                 |
+| accept            | Explicit decision to leave as-is with trigger     |
+| defer_with_trigger| Postpone with documented condition for re-review  |
+
+================================================================================
+GAP REGISTER
+================================================================================
+
+--------------------------------------------------------------------------------
+GAP-001: evaluate_compliance Tool Claimed But Not Implemented
+--------------------------------------------------------------------------------
+| Field              | Value                                                        |
+|---------------------|-------------------------------------------------------------|
+| Gap ID             | GAP-001                                                     |
+| Expected (Docs)    | Tool `evaluate_compliance` for evaluating design/code       |
+|                     | against compliance frameworks                               |
+| Observed (Runtime) | NO SUCH TOOL EXISTS. 13 tools in runtime, none named       |
+|                     | evaluate_compliance                                         |
+| Risk Class         | TRUST                                                       |
+| Disposition        | FIX NOW                                                     |
+| Source Anchors     | pyproject.toml:4 "evaluating designs and code"              |
+|                    | server.py:17 "evaluating designs and code"                  |
+|                    | PROJECT_DESIGN_DRAFT.md:127 (architecture diagram)          |
+|                    | PROJECT_DESIGN_DRAFT.md:172-173 (LLM dependency)            |
+|                    | PROJECT_DESIGN_DRAFT.md:187-276 (full tool spec)            |
+|                    | PROJECT_DESIGN_DRAFT.md:1213 (tool summary table)           |
+|                    | PROJECT_DESIGN_DRAFT.md:1533 (implementation task)          |
+| Verification       | `grep -n "evaluating designs and code" pyproject.toml       |
+|                    |   src/compliance_oracle/server.py` returns matches          |
+|                    | `grep -n "evaluate_compliance" src/compliance_oracle/`      |
+|                    |   returns NO MATCHES                                        |
+| Rationale          | Package description and server instructions claim a core    |
+|                    | capability that does not exist. This is a trust violation  |
+|                    | for users who install the package expecting this feature.  |
+
+--------------------------------------------------------------------------------
+GAP-002: get_assessment_questions Missing from Tools Table
+--------------------------------------------------------------------------------
+| Field              | Value                                                        |
+|---------------------|-------------------------------------------------------------|
+| Gap ID             | GAP-002                                                     |
+| Expected (Docs)    | Tools table lists all available MCP tools                   |
+| Observed (Runtime) | 13 tools exist, README table shows only 12.                |
+|                    | `get_assessment_questions` exists at runtime but is not    |
+|                    | in the MCP tools catalog table                              |
+| Risk Class         | OPERABILITY                                                 |
+| Disposition        | FIX NOW                                                     |
+| Source Anchors     | README.md:135-148 (tools table, 12 entries)                 |
+|                    | tools/assessment.py:23 (actual tool definition)             |
+|                    | README.md:242 (mentioned in roadmap, not tools table)       |
+| Verification       | Runtime extraction shows 13 tools.                          |
+|                    | README table grep shows 12 tool entries.                    |
+| Rationale          | Users reading the tools table won't discover this feature. |
+|                    | It's mentioned in roadmap but not discoverable as a tool.   |
+
+--------------------------------------------------------------------------------
+GAP-003: Framework Scope Mismatch (Design Doc vs README)
+--------------------------------------------------------------------------------
+| Field              | Value                                                        |
+|---------------------|-------------------------------------------------------------|
+| Gap ID             | GAP-003                                                     |
+| Expected (Docs)    | PROJECT_DESIGN_DRAFT.md claims support for:                 |
+|                    | NIST CSF 2.0, NIST 800-53, NIST 800-171, SOC2, ISO 27001   |
+| Observed (Runtime) | README.md and pyproject.toml only list:                     |
+|                    | NIST CSF 2.0, NIST 800-53 Rev. 5                            |
+|                    | No 800-171, SOC2, or ISO 27001 support documented           |
+| Risk Class         | SEMANTIC_DRIFT                                              |
+| Disposition        | SCHEDULE                                                    |
+| Source Anchors     | PROJECT_DESIGN_DRAFT.md: claims broader framework scope     |
+|                    | README.md:7-8 (limited scope)                               |
+|                    | pyproject.toml:4 (limited scope)                            |
+| Verification       | Grep for "800-171|SOC2|ISO 27001" in README.md returns 0   |
+| Rationale          | Design doc describes aspirational scope not yet shipped.   |
+|                    | Align design doc with current capabilities or add roadmap   |
+|                    | note clarifying future support.                             |
+
+--------------------------------------------------------------------------------
+GAP-004: Core Principle "Never Suggest Fixes" Undocumented
+--------------------------------------------------------------------------------
+| Field              | Value                                                        |
+|---------------------|-------------------------------------------------------------|
+| Gap ID             | GAP-004                                                     |
+| Expected (Docs)    | PROJECT_DESIGN_DRAFT.md:14 states core principle:           |
+|                    | "Identify what isn't compliant and why. Never suggest fixes."|
+| Observed (Runtime) | This principle is not communicated to users in README.md   |
+|                    | or any user-facing documentation                            |
+| Risk Class         | SEMANTIC_DRIFT                                              |
+| Disposition        | SCHEDULE                                                    |
+| Source Anchors     | PROJECT_DESIGN_DRAFT.md:14                                  |
+|                    | README.md: (no equivalent statement)                        |
+| Verification       | Grep for "Never suggest fixes" in README.md returns 0       |
+| Rationale          | Users may expect remediation guidance that the tool is      |
+|                    | explicitly designed NOT to provide. This expectation gap    |
+|                    | should be managed in user-facing docs.                      |
+
+--------------------------------------------------------------------------------
+GAP-005: LLM Dependency Not Documented for evaluate_compliance
+--------------------------------------------------------------------------------
+| Field              | Value                                                        |
+|---------------------|-------------------------------------------------------------|
+| Gap ID             | GAP-005                                                     |
+| Expected (Docs)    | PROJECT_DESIGN_DRAFT.md:172-173 states:                     |
+|                    | "Some tools require LLM reasoning (like evaluate_compliance)"|
+| Observed (Runtime) | evaluate_compliance does not exist, so dependency is moot  |
+| Risk Class         | CORRECTNESS                                                 |
+| Disposition        | ACCEPT (with trigger)                                       |
+| Trigger            | If/when evaluate_compliance is implemented, document LLM   |
+|                    | requirement in README tool description                      |
+| Source Anchors     | PROJECT_DESIGN_DRAFT.md:172-173                             |
+| Verification       | Tool does not exist, so no verification needed              |
+| Rationale          | Documenting a dependency for a non-existent feature would   |
+|                    | be confusing. Accept gap now, trigger documentation when    |
+|                    | feature ships.                                              |
+
+--------------------------------------------------------------------------------
+GAP-006: README Tools Count Incorrect
+--------------------------------------------------------------------------------
+| Field              | Value                                                        |
+|---------------------|-------------------------------------------------------------|
+| Gap ID             | GAP-006                                                     |
+| Expected (Docs)    | README tools table accurately reflects runtime tool count  |
+| Observed (Runtime) | README shows 12 tools, runtime has 13 tools                 |
+|                    | (missing get_assessment_questions from table)               |
+| Risk Class         | CORRECTNESS                                                 |
+| Disposition        | FIX NOW (subsumed by GAP-002)                               |
+| Source Anchors     | README.md:135-148 (12 tool entries)                         |
+|                    | Task 2 baseline (13 tools at runtime)                       |
+| Verification       | `grep -c "| \`" README.md` = 12                             |
+|                    | Runtime extraction = 13 tools                               |
+| Rationale          | This is the same root cause as GAP-002. Fix by adding       |
+|                    | get_assessment_questions to the tools table.                |
+
+--------------------------------------------------------------------------------
+GAP-007: Claim of "evaluating designs and code" in Package Description
+--------------------------------------------------------------------------------
+| Field              | Value                                                        |
+|---------------------|-------------------------------------------------------------|
+| Gap ID             | GAP-007                                                     |
+| Expected (Docs)    | Package description accurately describes capabilities      |
+| Observed (Runtime) | pyproject.toml:4 says "evaluating designs and code" but    |
+|                    | no such capability exists in current implementation         |
+| Risk Class         | TRUST                                                       |
+| Disposition        | FIX NOW                                                     |
+| Source Anchors     | pyproject.toml:4                                            |
+|                    | server.py:17 (same claim in server instructions)            |
+| Verification       | `grep -n "evaluating designs and code" pyproject.toml       |
+|                    |   src/compliance_oracle/server.py` shows claim locations    |
+| Rationale          | Package metadata is user-facing and creates false          |
+|                    | expectations. Either implement the feature or update the    |
+|                    | description to reflect current capabilities.               |
+|                    |                                                             |
+|                    | NOTE: This is a variant of GAP-001 but focused on the      |
+|                    | package-level claim rather than the tool-level claim.       |
+|                    | Both should be addressed together.                         |
+
+================================================================================
+GAP SUMMARY BY RISK CLASS
+================================================================================
+
+| Risk Class      | Count | Gap IDs                                          |
+|-----------------|-------|-------------------------------------------------|
+| TRUST           | 2     | GAP-001, GAP-007                                |
+| OPERABILITY     | 1     | GAP-002                                         |
+| SEMANTIC_DRIFT  | 2     | GAP-003, GAP-004                                |
+| CORRECTNESS     | 2     | GAP-005, GAP-006                                |
+
+================================================================================
+GAP SUMMARY BY DISPOSITION
+================================================================================
+
+| Disposition       | Count | Gap IDs                                    |
+|-------------------|-------|-------------------------------------------|
+| FIX NOW           | 4     | GAP-001, GAP-002, GAP-006, GAP-007        |
+| SCHEDULE          | 2     | GAP-003, GAP-004                          |
+| ACCEPT            | 1     | GAP-005 (with trigger)                    |
+
+================================================================================
+PRIORITY FIX ORDER
+================================================================================
+
+1. GAP-001 + GAP-007 (TRUST): Remove or update "evaluating designs and code" claims
+   - Option A: Implement evaluate_compliance tool
+   - Option B: Update pyproject.toml:4 and server.py:17 to remove the claim
+   - RECOMMENDED: Option B (update claims) - faster, honest about current state
+
+2. GAP-002 + GAP-006 (OPERABILITY/CORRECTNESS): Add get_assessment_questions to README
+   - Single fix: Add row to tools table at README.md:148
+   - Update example in table or add reference to roadmap section
+
+3. GAP-003 (SEMANTIC_DRIFT): Align framework scope documentation
+   - Either: Update design doc to clarify future scope
+   - Or: Add roadmap note to README about planned frameworks
+
+4. GAP-004 (SEMANTIC_DRIFT): Add core principle to user docs
+   - Add "Core Principle" section to README after Quickstart
+   - Quote: "Identify what isn't compliant and why. Never suggest fixes."
+
+5. GAP-005 (CORRECTNESS): Accepted with trigger
+   - No action now; document LLM dependency when evaluate_compliance ships
+
+================================================================================
+VERIFICATION: SOURCE ANCHOR CONFIRMATION
+================================================================================
+
+Command: grep -n "evaluating designs and code" src/compliance_oracle/server.py pyproject.toml
+Result:
+  pyproject.toml:4:description = "MCP server for evaluating designs and code..."
+  src/compliance_oracle/server.py:17:    instructions="MCP server for evaluating designs and code..."
+
+Status: CONFIRMED - Claim exists at both locations
+
+Command: grep -n "evaluate_compliance" src/compliance_oracle/server.py src/compliance_oracle/tools/*.py
+Result: evaluate_compliance not found in source
+
+Status: CONFIRMED - No implementation exists
+
+================================================================================
+END OF GAP REGISTER
+================================================================================

@@ -144,7 +144,7 @@ class FrameworkMapper:
         Returns:
             List of extracted control IDs.
         """
-        ids = []
+        ids: list[str] = []
 
         # Check if reference mentions the target framework
         if target_framework == "nist-800-53-r5":
@@ -245,9 +245,8 @@ class FrameworkMapper:
 
             prefix = f"{current_framework}:"
             for key, doc in state.controls.items():
-                if key.startswith(prefix):
-                    if doc.status in (ControlStatus.IMPLEMENTED, ControlStatus.NOT_APPLICABLE):
-                        current_implemented.add(doc.control_id)
+                if key.startswith(prefix) and doc.status in (ControlStatus.IMPLEMENTED, ControlStatus.NOT_APPLICABLE):
+                    current_implemented.add(doc.control_id)
         else:
             # Assume full compliance with current framework
             current_controls = await self._framework_manager.list_controls(current_framework)
@@ -294,7 +293,7 @@ class FrameworkMapper:
 
             # Helper sets
             all_source_controls = {m.source_control_id for m in mappings_for_target}
-            implemented_all = [s for s in all_source_controls if s in current_implemented]
+            [s for s in all_source_controls if s in current_implemented]
 
             # First, consider equivalent/broader mappings as strongest evidence
             eq_broader = eq + broader

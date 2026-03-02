@@ -1,0 +1,53 @@
+# Task T2: Replace datetime.utcnow() with timezone-aware UTC
+
+## Summary
+Successfully replaced all 8 `datetime.utcnow()` usages with `datetime.now(timezone.utc)` across two files.
+
+## Files Modified
+- `src/compliance_oracle/documentation/state.py` (5 usages)
+- `src/compliance_oracle/models/schemas.py` (3 usages)
+
+## Changes Made
+
+### state.py
+1. Added `timezone` to import: `from datetime import datetime, timezone`
+2. Line 69: `self._state.updated_at = datetime.now(timezone.utc)`
+3. Line 98: `doc.last_updated = datetime.now(timezone.utc)`
+4. Line 129: `doc.last_updated = datetime.now(timezone.utc)`
+5. Line 244: `"export_date": datetime.now(timezone.utc).isoformat()`
+6. Line 277: `f"*Generated: {datetime.now(timezone.utc).isoformat()}*"`
+
+### schemas.py
+1. Added `timezone` to import: `from datetime import datetime, timezone`
+2. Line 175: `last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))`
+3. Line 188: `created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))`
+4. Line 189: `updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))`
+
+## Verification Results
+
+### Deprecation Warning Check
+```
+$ uv run python -W error::DeprecationWarning -c "from compliance_oracle.documentation.state import ComplianceStateManager; from compliance_oracle.models.schemas import ComplianceState; print('ok')"
+ok
+```
+
+### Type Checking
+```
+$ uv run mypy src/compliance_oracle/documentation/state.py src/compliance_oracle/models/schemas.py
+Success: no issues found in 2 source files
+```
+
+### Tests
+```
+$ uv run pytest tests/test_documentation.py -q
+....................................                                     [100%]
+36 passed in 0.70s
+```
+
+## Key Learnings
+- For Pydantic `Field(default_factory=...)`, must use `lambda: datetime.now(timezone.utc)` NOT bare call
+- Bare call would capture import-time, not instance-time
+- Both files needed `timezone` added to the datetime import
+
+## Status
+✅ COMPLETE - All acceptance criteria met

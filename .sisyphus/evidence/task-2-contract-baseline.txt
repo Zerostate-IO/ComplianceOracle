@@ -1,0 +1,213 @@
+================================================================================
+COMPLIANCE ORACLE - RUNTIME TOOL CONTRACT BASELINE
+================================================================================
+Generated: 2026-02-28
+Method: Python runtime extraction + source code analysis
+================================================================================
+
+EXTRACTION COMMAND (VERIFICATION)
+--------------------------------------------------------------------------------
+uv run python -c "
+import asyncio
+from compliance_oracle.server import mcp
+async def main():
+    tools = await mcp.get_tools()
+    for tool in tools:
+        print(f'  - {tool}')
+    print(f'Total: {len(tools)} tools')
+asyncio.run(main())
+"
+
+================================================================================
+SECTION 1: MCP TOOLS (13 total)
+================================================================================
+Source: Runtime extraction via FastMCP.get_tools()
+
+#  | Tool Name                  | Source Module               | Line
+---|----------------------------|-----------------------------|-----
+ 1 | list_frameworks            | tools/lookup.py             | 18
+ 2 | list_controls              | tools/lookup.py             | 29
+ 3 | get_control_details        | tools/lookup.py             | 59
+ 4 | search_controls            | tools/search.py             | 12
+ 5 | get_control_context        | tools/search.py             | 50
+ 6 | document_compliance        | tools/documentation.py      | 21
+ 7 | link_evidence              | tools/documentation.py      | 67
+ 8 | get_documentation          | tools/documentation.py      | 120
+ 9 | export_documentation       | tools/documentation.py      | 171
+10 | compare_frameworks         | tools/framework_mgmt.py     | 13
+11 | get_framework_gap          | tools/framework_mgmt.py     | 47
+12 | get_guidance               | tools/framework_mgmt.py     | 82
+13 | get_assessment_questions   | tools/assessment.py         | 23
+
+================================================================================
+SECTION 2: CLI COMMANDS (7 total)
+================================================================================
+Source: Source code analysis of src/compliance_oracle/cli.py
+
+#  | Command Name | Line | Description
+---|--------------|------|-----------------------------------------------
+ 1 | fetch        | 22   | Fetch framework data from NIST CPRT
+ 2 | validate     | 84   | Validate framework data files
+ 3 | status       | 126  | Show current status of Compliance Oracle
+ 4 | index        | 161  | Index framework controls into vector store
+ 5 | search       | 195  | Search for controls matching a query
+ 6 | show         | 247  | Show details for a specific control
+ 7 | clear        | 300  | Clear indexed controls from vector store
+
+================================================================================
+SECTION 3: TOOL REGISTRATION PATTERN
+================================================================================
+Source: src/compliance_oracle/server.py (lines 20-25)
+
+Registration Pattern:
+  - Each module exports a `register_*_tools(mcp: FastMCP)` function
+  - Server imports and calls each registration function
+  - Tools are decorated with @mcp.tool() within each module
+
+Import/Registration Sequence:
+  1. from compliance_oracle.tools.lookup import register_lookup_tools
+  2. from compliance_oracle.tools.search import register_search_tools
+  3. from compliance_oracle.tools.documentation import register_documentation_tools
+  4. from compliance_oracle.tools.framework_mgmt import register_framework_tools
+  5. from compliance_oracle.tools.assessment import register_assessment_tools
+
+Registration Calls:
+  - register_lookup_tools(mcp)         # 3 tools
+  - register_search_tools(mcp)         # 2 tools
+  - register_documentation_tools(mcp)  # 4 tools
+  - register_framework_tools(mcp)      # 3 tools
+  - register_assessment_tools(mcp)     # 1 tool
+
+================================================================================
+SECTION 4: MCP TOOL SIGNATURES (from source code)
+================================================================================
+
+### tools/lookup.py
+
+list_frameworks() -> ListFrameworksResponse
+  - No parameters
+  - Returns list of available frameworks with metadata
+
+list_controls(framework: str = "nist-csf-2.0", function: str | None = None, 
+              category: str | None = None) -> ListControlsResponse
+  - Filter controls by framework, function, and/or category
+
+get_control_details(control_id: str, framework: str = "nist-csf-2.0") 
+                    -> ControlDetails | None
+  - Get full details for a specific control
+
+### tools/search.py
+
+search_controls(query: str, framework: str | None = None, limit: int = 10) 
+               -> SearchResponse
+  - Semantic search across compliance controls
+
+get_control_context(control_id: str, framework: str = "nist-csf-2.0",
+                   include_siblings: bool = True, include_related: bool = True) 
+                   -> dict
+  - Get hierarchy and relationships for a control
+
+### tools/documentation.py
+
+document_compliance(control_id: str, status: str, framework: str = "nist-csf-2.0",
+                   implementation_summary: str | None = None, owner: str | None = None,
+                   notes: str | None = None, project_path: str = ".") -> dict
+  - Record implementation status for a control
+
+link_evidence(control_id: str, evidence_type: str, path: str, description: str,
+             framework: str = "nist-csf-2.0", line_start: int | None = None,
+             line_end: int | None = None, project_path: str = ".") -> dict
+  - Attach evidence to a documented control
+
+get_documentation(framework: str = "nist-csf-2.0", function: str | None = None,
+                 category: str | None = None, status: str | None = None,
+                 include_evidence: bool = False, project_path: str = ".") -> dict
+  - Retrieve current compliance documentation state
+
+export_documentation(format: str = "markdown", framework: str = "nist-csf-2.0",
+                    include_evidence: bool = True, include_gaps: bool = True,
+                    output_path: str | None = None, project_path: str = ".") -> dict
+  - Export documentation as JSON or Markdown
+
+### tools/framework_mgmt.py
+
+compare_frameworks(control_id: str, source_framework: str = "nist-csf-2.0",
+                  target_framework: str | None = None) -> dict
+  - Show cross-framework mappings for a control
+
+get_framework_gap(current_framework: str, target_framework: str,
+                 use_documented_state: bool = True, project_path: str = ".") 
+                 -> GapAnalysisResult
+  - Analyze gaps between frameworks
+
+get_guidance(control_id: str, framework: str = "nist-csf-2.0",
+            context: str | None = None, detail_level: str = "detailed") -> dict
+  - Get implementation guidance for a control
+
+### tools/assessment.py
+
+get_assessment_questions(framework: str = "nist-csf-2.0", function: str | None = None,
+                        category: str | None = None, control_id: str | None = None,
+                        granularity: str = "standard") -> AssessmentTemplate
+  - Generate interview-style assessment questions
+
+================================================================================
+SECTION 5: CLI COMMAND SIGNATURES (from source code)
+================================================================================
+
+### cli.py
+
+fetch (--framework, -f: choice = "all", --output-dir, -o: path = None)
+  - Fetch framework data from NIST CPRT
+  - Frameworks: all, nist-csf-2.0, nist-800-53-r5
+
+validate (--framework, -f: choice = "all")
+  - Validate framework data files
+  - Frameworks: all, nist-csf-2.0, nist-800-53-r5
+
+status (no options)
+  - Show current status of Compliance Oracle
+  - Displays framework status and vector store index status
+
+index (--framework, -f: choice = "all")
+  - Index framework controls into vector store
+  - Frameworks: all, nist-csf-2.0, nist-800-53-r5
+
+search QUERY (--framework, -f: str = None, --limit, -n: int = 10)
+  - Search for controls matching a query
+
+show CONTROL_ID (--framework, -f: str = "nist-csf-2.0")
+  - Show details for a specific control
+
+clear (--framework, -f: str = None, --yes, -y: flag)
+  - Clear indexed controls from vector store
+  - Requires confirmation unless --yes is specified
+
+================================================================================
+SECTION 6: VERIFICATION CHECKSUM
+================================================================================
+
+MCP Tool Count:
+  - Expected: 13
+  - Extracted: 13
+  - Status: MATCH
+
+CLI Command Count:
+  - Expected: 7
+  - Extracted: 7
+  - Status: MATCH
+
+Decorator Verification (@mcp.tool()):
+  - lookup.py: 3 decorators (lines 18, 29, 59)
+  - search.py: 2 decorators (lines 12, 50)
+  - documentation.py: 4 decorators (lines 21, 67, 120, 171)
+  - framework_mgmt.py: 3 decorators (lines 13, 47, 82)
+  - assessment.py: 1 decorator (line 23)
+  - Total: 13 decorators
+
+CLI Command Decorators (@main.command()):
+  - cli.py: 7 decorators (lines 22, 84, 126, 161, 195, 247, 300)
+
+================================================================================
+END OF BASELINE
+================================================================================

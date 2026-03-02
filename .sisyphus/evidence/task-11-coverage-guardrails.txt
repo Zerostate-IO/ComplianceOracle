@@ -1,0 +1,94 @@
+# Task 11: Coverage and Regression Guardrails - Evidence
+
+## Date: 2026-02-28
+
+## Files Modified
+
+1. **pyproject.toml**
+   - Added `pytest-cov>=4.1.0` to dev dependencies
+   - Added `[tool.coverage.run]` configuration
+   - Added `[tool.coverage.report]` configuration
+
+2. **README.md**
+   - Added coverage command to Development section:
+     `pytest --cov=src/compliance_oracle --cov-report=term-missing`
+
+3. **CONTRIBUTING.md**
+   - Added new "Coverage Policy" section with:
+     - Current baseline: 32% (47 tests)
+     - Ratchet policy
+     - High-risk modules table
+     - Coverage goals
+
+## Baseline Coverage Report
+
+```
+Name                                              Stmts   Miss  Cover   Missing
+-------------------------------------------------------------------------------
+src/compliance_oracle/__init__.py                     1      0   100%
+src/compliance_oracle/cli.py                        172    172     0%   3-340
+src/compliance_oracle/documentation/__init__.py       0      0   100%
+src/compliance_oracle/documentation/state.py        156    132    15%   39-43, 47, 51-61, ...
+src/compliance_oracle/frameworks/__init__.py          0      0   100%
+src/compliance_oracle/frameworks/manager.py         163    146    10%   31-38, 42, 53-74, ...
+src/compliance_oracle/frameworks/mapper.py          130    116    11%   36-43, 59-98, ...
+src/compliance_oracle/models/__init__.py              0      0   100%
+src/compliance_oracle/models/schemas.py             148      0   100%
+src/compliance_oracle/rag/__init__.py                 0      0   100%
+src/compliance_oracle/rag/search.py                 106     88    17%   34-41, 45-51, ...
+src/compliance_oracle/server.py                      16     16     0%   6-34
+src/compliance_oracle/tools/__init__.py               0      0   100%
+src/compliance_oracle/tools/assessment.py            26      4    85%   59-64, 120, 122
+src/compliance_oracle/tools/documentation.py         53     18    66%   97, 150-162, 208-212
+src/compliance_oracle/tools/framework_mgmt.py        23      1    96%   112
+src/compliance_oracle/tools/lookup.py                18      0   100%
+src/compliance_oracle/tools/search.py                13      0   100%
+-------------------------------------------------------------------------------
+TOTAL                                              1025    693    32%
+```
+
+## Verification Commands
+
+```bash
+# Run tests with coverage
+uv run pytest --cov=src/compliance_oracle --cov-report=term-missing
+
+# Output: 47 passed, 32% coverage
+```
+
+## High-Risk Modules
+
+Per CONTRIBUTING.md coverage policy:
+
+| Module | Coverage | Priority |
+|--------|----------|----------|
+| tools/lookup.py | 100% | HIGH (maintain) |
+| tools/search.py | 100% | HIGH (maintain) |
+| tools/documentation.py | 66% | HIGH (improve) |
+| rag/search.py | 17% | MEDIUM |
+| frameworks/mapper.py | 11% | MEDIUM |
+| frameworks/manager.py | 10% | MEDIUM |
+| documentation/state.py | 15% | MEDIUM |
+| cli.py | 0% | LOW |
+
+## Coverage Configuration
+
+```toml
+[tool.coverage.run]
+source = ["src/compliance_oracle"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+```
+
+## Notes
+
+- No fail_under threshold set (just documenting baseline)
+- Ratchet policy documented: "Coverage should not decrease below baseline"
+- 100% modules: lookup.py, search.py, schemas.py (models)
+- 0% modules: cli.py, server.py (entry points, typically tested via integration)

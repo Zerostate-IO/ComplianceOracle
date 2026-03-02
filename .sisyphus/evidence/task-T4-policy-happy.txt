@@ -1,0 +1,9 @@
+=== QA Scenario: Allowed gap-language happy path ===
+Input: MFA coverage beyond current scope may need assessment
+policy_violation: False
+Text preserved: True
+violations: []
+
+Expected: Text preserved, policy_violation=false
+ACTUAL: Text preserved=True, policy_violation=False
+PASS

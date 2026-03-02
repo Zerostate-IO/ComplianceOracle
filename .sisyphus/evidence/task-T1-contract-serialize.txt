@@ -1,0 +1,16 @@
+=== IntelligenceResult Serialization ===
+{
+  "metadata": {
+    "analysis_mode": "deterministic",
+    "llm_used": false,
+    "degrade_reason": "ollama_timeout",
+    "policy_violations": [],
+    "latency_ms": 100
+  }
+}
+
+=== Verification Passed ===
+- analysis_mode: deterministic
+- llm_used: False
+- degrade_reason: ollama_timeout
+- All expected keys present

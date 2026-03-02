@@ -57,6 +57,8 @@ class FrameworkManager:
         file_map = {
             "nist-csf-2.0": "nist-csf-2.0.json",
             "nist-800-53-r5": "nist-800-53-r5.json",
+            "nist-800-171-r2": "nist-800-171-r2.json",
+            "soc2-tsc-2017": "soc2-tsc-2017.json",
         }
 
         filename = file_map.get(framework_id)
@@ -96,6 +98,20 @@ class FrameworkManager:
                 "version": "5.0",
                 "description": "Security and Privacy Controls for Information Systems and Organizations",
                 "source_url": "https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final",
+            },
+            {
+                "id": "nist-800-171-r2",
+                "name": "NIST SP 800-171 Rev. 2",
+                "version": "2.0",
+                "description": "Protecting Controlled Unclassified Information in Nonfederal Systems and Organizations",
+                "source_url": "https://csrc.nist.gov/publications/detail/sp/800-171/rev-2/final",
+            },
+            {
+                "id": "soc2-tsc-2017",
+                "name": "SOC 2 Trust Services Criteria (2017)",
+                "version": "2017",
+                "description": "AICPA Trust Services Criteria for evaluating controls at service organizations",
+                "source_url": "https://www.aicpa.org/soc2",
             },
         ]
 
@@ -139,7 +155,11 @@ class FrameworkManager:
         if "response" in data and "elements" in data["response"]:
             raw_elements = data["response"]["elements"].get("elements", [])
             return len(
-                [e for e in raw_elements if e.get("element_type") in ["subcategory", "control"]]
+                [
+                    e
+                    for e in raw_elements
+                    if e.get("element_type") in ["subcategory", "control", "requirement"]
+                ]
             )
 
         if "subcategories" in data:
@@ -151,7 +171,8 @@ class FrameworkManager:
         count = 0
         for func in data.get("functions", []):
             for cat in func.get("categories", []):
-                count += len(cat.get("subcategories", []))
+                # Handle both subcategories (NIST CSF) and controls (SOC2)
+                count += len(cat.get("subcategories", []) or cat.get("controls", []))
         return count
 
     async def list_controls(
@@ -281,7 +302,7 @@ class FrameworkManager:
                     )
                 )
 
-        # NIST CSF 2.0 nested format
+        # NIST CSF 2.0 nested format / SOC2 TSC format
         elif "functions" in data:
             for func in data.get("functions", []):
                 func_id = func.get("id", "")
@@ -291,20 +312,22 @@ class FrameworkManager:
                     cat_id = cat.get("id", "")
                     cat_name = cat.get("name", cat_id)
 
-                    for sub in cat.get("subcategories", []):
+                    # Handle both subcategories (NIST CSF) and controls (SOC2)
+                    items = cat.get("subcategories", []) or cat.get("controls", [])
+                    for item in items:
                         controls.append(
                             Control(
-                                id=sub.get("id", ""),
-                                name=sub.get("name", sub.get("id", "")),
-                                description=sub.get("description", ""),
+                                id=item.get("id", ""),
+                                name=item.get("name", item.get("id", "")),
+                                description=item.get("description", ""),
                                 framework_id=framework_id,
                                 function_id=func_id,
                                 function_name=func_name,
                                 category_id=cat_id,
                                 category_name=cat_name,
-                                implementation_examples=sub.get("implementation_examples", []),
-                                informative_references=sub.get("informative_references", []),
-                                keywords=sub.get("keywords", []),
+                                implementation_examples=item.get("implementation_examples", []),
+                                informative_references=item.get("informative_references", []),
+                                keywords=item.get("keywords", []),
                             )
                         )
 

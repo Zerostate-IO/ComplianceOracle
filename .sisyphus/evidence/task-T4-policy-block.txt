@@ -1,0 +1,9 @@
+=== QA Scenario: Forbidden remediation failure path ===
+Input: You should implement MFA for admins
+policy_violation: True
+violations: ['should implement', 'you should']
+sanitized_text: You implementation of MFA for admins
+
+Expected: Forbidden phrase removed or output blocked, policy_violation=true, reason includes matched rule
+ACTUAL: policy_violation=True, violations=['should implement', 'you should']
+PASS

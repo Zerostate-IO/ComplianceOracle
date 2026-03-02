@@ -1,6 +1,6 @@
 """Tests for evaluation tools (evaluate_compliance)."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -802,8 +802,8 @@ class TestNoFixPolicyIntegration:
 
     def test_compliant_area_text_no_remediation(self) -> None:
         """Compliant area text should not contain remediation language."""
-        from compliance_oracle.tools.evaluation import _find_compliant_areas
         from compliance_oracle.assessment.policy import enforce_no_fix_policy
+        from compliance_oracle.tools.evaluation import _find_compliant_areas
 
         content = "We use MFA for all users and encrypt data at rest."
         areas = _find_compliant_areas(content, content.lower())

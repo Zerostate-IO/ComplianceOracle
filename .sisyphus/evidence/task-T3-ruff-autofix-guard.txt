@@ -1,0 +1,64 @@
+# Ruff Autofix Guard Evidence
+# Task: T3 - Verify only manual-rule residuals remain
+# Date: 2026-03-02
+
+## Verification Summary
+- Command: `uv run ruff check`
+- Status: GUARD PASSED
+- Residual errors: 10
+
+## Manual-Rule Residuals (Expected)
+Only the following manual rules remain (as expected):
+
+### E402 (import-not-at-top): 3 errors
+Location: tests/test_documentation.py
+Lines: 1143, 1145, 1150
+Reason: Module-level imports after non-import code
+Manual action required: Reorganize test file structure
+
+### F841 (unused-variable): 3 errors
+Locations:
+1. src/compliance_oracle/assessment/orchestrator.py:225
+   - Variable: category
+2. tests/test_assessment.py:1107
+   - Variable: mock_state_mgr_class
+3. tests/test_lookup.py:39
+   - Variable: list_frameworks_tool
+Reason: Variables assigned but never used
+Manual action required: Remove or use variables
+
+### SIM117 (multiple-with-statements): 2 errors
+Location: tests/test_assessment.py
+Lines: 1018, 1296
+Reason: Nested with statements could be combined
+Manual action required: Refactor to single with statement
+
+### B904 (raise-from-inside-except): 1 error
+Location: src/compliance_oracle/cli.py:431
+Reason: Exception raised without from clause
+Manual action required: Add `from e` or `from None`
+
+### SIM108 (ternary-operator): 1 error
+Location: scripts/fetch_nist_data.py:255
+Reason: if-else block could be ternary
+Manual action required: Refactor to ternary operator
+
+## Autofixable Rules Removed
+The following autofixable rules are NO LONGER present:
+✓ F401 (unused-import): 0 errors
+✓ I001 (unsorted-imports): 0 errors
+✓ B009 (getattr-constant): 0 errors
+✓ F811 (redefined-while-unused): 0 errors
+✓ UP017 (datetime-utc-alias): 0 errors
+✓ W292 (no-newline-at-end): 0 errors
+
+## Guard Verification
+✓ Only manual-rule categories remain
+✓ All autofixable rules resolved
+✓ No unexpected rule categories present
+✓ Test suite still passing (249/249 tests)
+
+## Conclusion
+Safe autofix pass completed successfully. All 105 autofixable errors resolved.
+Only 10 manual-rule errors remain, matching expected categories.
+Ready for manual remediation in subsequent tasks.

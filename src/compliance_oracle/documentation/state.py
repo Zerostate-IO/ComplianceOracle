@@ -1,7 +1,7 @@
 """Compliance state manager for persisting documentation state."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -66,7 +66,7 @@ class ComplianceStateManager:
             return
 
         self._ensure_state_dir()
-        self._state.updated_at = datetime.now(timezone.utc)
+        self._state.updated_at = datetime.now(UTC)
 
         with open(self._state_file, "w") as f:
             json.dump(self._state.model_dump(mode="json"), f, indent=2, default=str)
@@ -95,7 +95,7 @@ class ComplianceStateManager:
             existing = state.controls[key]
             doc.evidence = existing.evidence
 
-        doc.last_updated = datetime.now(timezone.utc)
+        doc.last_updated = datetime.now(UTC)
         state.controls[key] = doc
 
         await self._save_state()
@@ -126,7 +126,7 @@ class ComplianceStateManager:
 
         doc = state.controls[key]
         doc.evidence.append(evidence)
-        doc.last_updated = datetime.now(timezone.utc)
+        doc.last_updated = datetime.now(UTC)
 
         await self._save_state()
 
@@ -241,7 +241,7 @@ class ComplianceStateManager:
     ) -> str:
         """Export as JSON."""
         export_data: dict[str, Any] = {
-            "export_date": datetime.now(timezone.utc).isoformat(),
+            "export_date": datetime.now(UTC).isoformat(),
             "framework_id": framework_id,
             "summary": summary.model_dump() if summary else None,
             "controls": [],
@@ -274,7 +274,7 @@ class ComplianceStateManager:
         lines = [
             f"# Compliance Documentation: {framework_id}",
             "",
-            f"*Generated: {datetime.now(timezone.utc).isoformat()}*",
+            f"*Generated: {datetime.now(UTC).isoformat()}*",
             "",
         ]
 

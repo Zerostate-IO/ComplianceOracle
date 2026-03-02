@@ -14,6 +14,39 @@ It supports:
 - Cross-framework gap analysis (CSF → 800-53) using relationship-aware mappings
 - A CLI for fetching, indexing, validating, and exporting data
 
+## Design Philosophy
+
+Compliance Oracle follows a single core principle:
+
+> **Identify what isn't compliant and why. Never suggest fixes.**
+
+This tool is designed to help you understand compliance gaps, not to prescribe
+solutions. Remediation decisions require human judgment about risk tolerance,
+resource constraints, and organizational context. The tool provides:
+
+- Clear identification of non-compliant controls
+- Evidence linking and documentation
+- Cross-framework mapping and gap analysis
+
+What it does NOT provide:
+
+- Automated fix recommendations
+- Remediation scripts
+- "One-click" compliance solutions
+
+## Hybrid Intelligence Mode
+
+Compliance Oracle supports optional LLM enrichment via local Ollama for enhanced
+rationale and context. Key behaviors:
+
+- **Deterministic-first**: All control status and gap detection comes from rule-based logic
+- **LLM enrichment only**: The LLM can only add rationale/context, never change assessments
+- **Hard-degrade**: If Ollama is unavailable, the system returns deterministic results
+- **No-fix guard**: All LLM output passes through a policy filter that blocks prescriptive language
+
+See [docs/HYBRID_OPERATIONS.md](docs/HYBRID_OPERATIONS.md) for the complete operations
+runbook covering Ollama setup, model selection, timeout tuning, and troubleshooting.
+
 ## Quickstart (Users)
 
 Requires [uv](https://docs.astral.sh/uv/).
@@ -135,6 +168,7 @@ The main MCP tools exposed by the server are:
 | Tool                        | Purpose                              | Example                                                             |
 |-----------------------------|--------------------------------------|---------------------------------------------------------------------|
 | `list_frameworks()`         | List available frameworks            | `list_frameworks()`                                                 |
+| `manage_framework()`         | Manage framework lifecycle (list, validate, update, remove) | `manage_framework(action='list')` |
 | `list_controls()`           | Browse controls in a framework       | `list_controls("nist-csf-2.0", "PR")`                              |
 | `search_controls()`         | Semantic search over controls        | `search_controls("MFA")`                                           |
 | `get_control_details()`     | Retrieve full control details        | `get_control_details("PR.AC-01")`                                  |
@@ -146,6 +180,10 @@ The main MCP tools exposed by the server are:
 | `get_guidance()`            | Provide implementation guidance      | `get_guidance("PR.AC-01")`                                         |
 | `get_control_context()`     | Show hierarchy and related controls  | `get_control_context("PR.DS-01")`                                  |
 | `get_framework_gap()`       | Relationship-aware migration gaps    | `get_framework_gap("nist-csf-2.0", "nist-800-53-r5")`             |
+| `get_assessment_questions()` | Generate interview-style questions   | `get_assessment_questions(framework="nist-csf-2.0", function="PR")` |
+| `assess_control()`          | Assess control with response eval    | `assess_control("PR.AC-01", response="We use MFA...", evaluate_response=True)` |
+| `interview_control()`       | Guided Q&A to document a control     | `interview_control("PR.DS-01", mode="start")` |
+| `evaluate_compliance()`      | Evaluate compliance posture against framework controls | `evaluate_compliance(content='Our security policy...', content_type='POLICY')` |
 
 See `src/compliance_oracle/models/schemas.py` for complete response schemas.
 
@@ -210,7 +248,8 @@ Project: [describe codebase]
 
 ```bash
 uv sync --dev          # Install dev dependencies (pytest, ruff, mypy, etc.)
-pytest                 # Run tests (if any)
+pytest                 # Run tests
+pytest --cov=src/compliance_oracle --cov-report=term-missing  # Run with coverage
 ruff check --fix       # Lint and auto-fix
 mypy src/              # Type checking
 ```
@@ -228,53 +267,99 @@ compliance-oracle fetch --framework all
 - Embeddings: `all-MiniLM-L6-v2` (sentence-transformers)
 - Project state file: `.compliance-oracle/state.json` (per project)
 
-## Roadmap (high level)
+## Roadmap
 
-This is an implementation-focused roadmap; versions are approximate and may be refined.
+### 90-Day Execution Backlog (Risk-First)
 
-- **0.x – MCP server + CLI**
+See `.sisyphus/evidence/task-12-roadmap-backlog.md` for detailed item specifications.
+
+#### NOW (Days 0-30) – Stabilization & CI Quality
+
+| ID | Item | Type | Priority | Effort |
+|----|------|------|----------|--------|
+| R-001 | Fix pre-existing ruff errors (28) | FIX | P1 | M |
+| R-002 | Fix pre-existing mypy errors (32) | FIX | P1 | M |
+| R-003 | Increase documentation.py coverage (66%→85%) | FIX | P1 | M |
+| R-004 | Document "Never suggest fixes" core principle | FIX | P2 | S |
+
+#### NEXT (Days 30-60) – Coverage Improvement
+
+| ID | Item | Type | Priority | Effort |
+|----|------|------|----------|--------|
+| R-005 | Add rag/search.py tests (17%→70%) | FIX | P1 | M |
+| R-006 | Add frameworks/manager.py tests (10%→70%) | FIX | P1 | M |
+| R-007 | Add frameworks/mapper.py tests (11%→70%) | FIX | P1 | M |
+| R-008 | Align framework scope documentation | FIX | P2 | S |
+
+#### LATER (Days 60-90) – New Features & Expansion
+
+| ID | Item | Type | Priority | Effort |
+|----|------|------|----------|--------|
+| R-009 | **Implement evaluate_compliance tool** | ENHANCEMENT | P0 | L |
+| R-010 | Implement assess_control with evaluate_response | ENHANCEMENT | P1 | M |
+| R-011 | Implement interview_control for guided Q&A | ENHANCEMENT | P2 | M |
+| R-012 | Add NIST 800-171 framework support | ENHANCEMENT | P2 | M |
+| R-013 | Add SOC2 Trust Principles support | ENHANCEMENT | P2 | M |
+| R-014 | Implement manage_framework MCP tool | ENHANCEMENT | P2 | M |
+
+
+**Critical Path to R-009:** R-001 → R-002 → R-005 + R-006 → R-009 (~3-4 weeks)
+
+### Enhancement Epics (Gated)
+
+See `.sisyphus/evidence/task-13-enhancement-epics.md` for full epic specifications.
+
+These epics define medium-term enhancements with explicit entry criteria. They should
+NOT be started until stabilization is complete.
+
+| Epic | Title | Entry Gate | Effort | Tier |
+|------|-------|------------|--------|------|
+| EPIC-001 | evaluate_compliance (Agent Mode) | R-001, R-002, R-005, R-006 complete | L | LATER |
+| EPIC-002 | Additional Frameworks (800-171, SOC2, ISO) | R-006, R-007, R-008 complete | M | LATER |
+| EPIC-003 | Richer Assessment Flows | EPIC-001 complete, R-003 complete | M | LATER |
+| EPIC-004 | Local Web UI (Docker/Compose) | EPIC-001, EPIC-003, Coverage ≥50% | L | Q3 2026 |
+| EPIC-005 | Multi-tenant Deployment (SaaS) | EPIC-004, Coverage ≥70% | XL | Q4 2026 |
+
+**Key Principle:** Each epic has measurable entry criteria. Starting before these are met
+would repeat the trust violations that triggered the gap roadmap initiative.
+
+### Deferred Specifications
+
+The following specifications define future epics that are explicitly deferred until
+current stabilization work is complete. No implementation should occur based on these
+specs until the entry criteria for the relevant epic are met.
+
+| Spec | Title | Description | Target |
+|------|-------|-------------|--------|
+| [LATEX_REPORTING_SPEC](docs/LATEX_REPORTING_SPEC.md) | LaTeX Report Generation | Professional PDF compliance reports via LaTeX templates | Post-1.x |
+
+---
+
+### Version Milestones (Long-Term)
+
+- **0.x – MCP server + CLI** ✅ COMPLETE
   - Core MCP tools for NIST CSF 2.0 / NIST SP 800-53.
   - RAG search, documentation state, evidence linking, gap analysis.
 
-- **0.1.x – Assessment/interview API (current)**
+- **0.1.x – Assessment/interview API** ✅ COMPLETE
   - Relationship-aware mappings (`ControlRelationship`).
   - Direct vs. derived control status fields.
-  - Assessment/interview templates exposed via `get_assessment_questions` so any MCP-compatible
-    client can drive posture interviews.
+  - Assessment/interview templates via `get_assessment_questions`.
 
-- **1.x–2.x – Richer assessment flows**
+- **1.x–2.x – Richer assessment flows** (Target: Q2 2026)
   - More granular question types (policy vs. technical, per-asset questions).
   - Better guidance mapping from answers to recommended `ControlStatus` and notes.
   - Optional automation hooks to ingest evidence from other MCP tools.
 
-- **3.x – Local-only web UI (Docker/Compose)**
-  - Docker Compose stack with:
-    - ComplianceOracle MCP server.
-    - Local web application for visualizing posture and running interviews.
-  - Local, single-machine usage model:
-    - No authentication; access via `http://localhost` only.
-    - Per-project posture views and interactive assessment sessions.
+- **3.x – Local-only web UI (Docker/Compose)** (Target: Q3 2026)
+  - Docker Compose stack with ComplianceOracle MCP server and local web UI.
+  - Per-project posture views and interactive assessment sessions.
 
-- **4.0 – Multi-tenant, internet-facing deployment**
-  - Multi-tenant and user model:
-    - Tenants (organizations).
-    - Multiple users per tenant, with roles (for example: CISO/vCISO, system owners,
-      application owners).
-    - Support for grouping users (teams) and assigning responsibility to users or groups.
-  - Asset and inventory model:
-    - Systems, applications, services, hardware, and other inventory items (for example,
-      "Salesforce", "Production Kubernetes cluster").
-    - Controls and assessment tasks can be scoped to specific assets.
-  - Delegation and approval flows:
-    - Allow assigning specific assets or control-scoped assessments to responsible owners
-      (for example, a Salesforce admin completes evidence and answers questions specific to
-      Salesforce).
-    - Higher-level roles (for example, CISO/vCISO) can review, comment on, and approve
-      statuses and evidence submitted by asset owners.
-  - Secure deployment model:
-    - Proper authentication and authorization.
-    - HTTPS termination and network hardening suitable for internet exposure.
-    - Back-end data store for tenants, users, assets, and assessments.
+- **4.0 – Multi-tenant deployment** (Target: Q4 2026)
+  - Multi-tenant and user model with roles.
+  - Asset inventory model scoped to controls.
+  - Delegation and approval flows.
+  - Secure deployment with authentication/authorization.
 
 ## License
 

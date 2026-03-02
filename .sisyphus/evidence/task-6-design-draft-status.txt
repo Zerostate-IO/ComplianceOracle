@@ -1,0 +1,104 @@
+================================================================================
+COMPLIANCE ORACLE - DESIGN DRAFT STATUS MARKERS
+================================================================================
+Generated: 2026-02-28
+Task: 6 - Reframe PROJECT_DESIGN_DRAFT as Vision/History with Explicit Status
+================================================================================
+
+SUMMARY
+--------------------------------------------------------------------------------
+Added status markers to PROJECT_DESIGN_DRAFT.md to distinguish implemented,
+partially implemented, and future concepts.
+
+CHANGES MADE
+--------------------------------------------------------------------------------
+
+1. DOCUMENT HEADER STATUS BLOCK (lines 9-19)
+   Added prominent warning block at top of document:
+   - "DOCUMENT STATUS: HISTORICAL VISION DOCUMENT"
+   - References README.md as authoritative source for current capabilities
+   - Defines status legend (IMPLEMENTED, NOT IMPLEMENTED, PARTIAL)
+
+2. SECTION 4: MCP TOOL SPECIFICATIONS
+   - 4.1 evaluate_compliance: 🔴 NOT IMPLEMENTED
+   - 4.2 get_control_details: ✅ IMPLEMENTED
+   - 4.3 list_controls: ✅ IMPLEMENTED
+   - 4.4 list_frameworks: ✅ IMPLEMENTED
+
+3. SECTION 5: INTERACTIVE MODE TOOLS
+   - 5.1 search_controls: ✅ IMPLEMENTED
+   - 5.2 get_guidance: ✅ IMPLEMENTED
+   - 5.3 assess_control: 🔴 NOT IMPLEMENTED (note: get_assessment_questions exists)
+   - 5.4 compare_frameworks: ✅ IMPLEMENTED
+   - 5.5 get_control_context: ✅ IMPLEMENTED
+
+4. SECTION 6: DOCUMENTATION MODE TOOLS
+   - 6.1 document_compliance: ✅ IMPLEMENTED
+   - 6.2 link_evidence: ✅ IMPLEMENTED
+   - 6.3 interview_control: 🔴 NOT IMPLEMENTED (note: get_assessment_questions exists)
+   - 6.4 get_documentation: ✅ IMPLEMENTED
+   - 6.5 export_documentation: ✅ IMPLEMENTED
+
+5. SECTION 7: FRAMEWORK MANAGEMENT TOOLS
+   - 7.1 manage_framework: 🔴 NOT IMPLEMENTED (note: CLI has fetch/validate)
+   - 7.2 import_framework: 🔴 NOT IMPLEMENTED
+   - 7.3 get_framework_gap: ✅ IMPLEMENTED
+   - 7.4 build_mapping: 🔴 NOT IMPLEMENTED
+
+6. TOOL SUMMARY TABLE (Section after 7.4)
+   Updated table to include Status column with markers for all tools.
+   Added new row for get_assessment_questions (implemented but not in original spec).
+
+7. SECTION 13: IMPLEMENTATION PHASES
+   Added progress summary showing:
+   - Phase 1 (Foundation): ✅ COMPLETE
+   - Phase 2 (Interactive Mode): ✅ COMPLETE
+   - Phase 3 (Evaluation Engine): 🔴 NOT STARTED
+   - Phase 4 (Documentation Mode): 🫂 PARTIAL
+   - Phase 5 (Framework Management): 🫂 PARTIAL
+   - Phase 6 (Integration): 🫂 PARTIAL
+   - Phase 7 (Expand Frameworks): 🫂 PARTIAL
+   
+   Updated individual task checkboxes to reflect actual progress.
+
+VERIFICATION
+--------------------------------------------------------------------------------
+Command: grep -n "IMPLEMENTED\|NOT IMPLEMENTED\|PARTIAL" PROJECT_DESIGN_DRAFT.md
+
+Results:
+- Header legend: 3 entries (lines 16-18)
+- Tool status markers: 21 entries (lines 200-1261)
+- Phase status: 7 phase-level markers + many checkbox updates
+
+Total status-related entries: 31+
+
+IMPLEMENTATION STATUS SUMMARY
+--------------------------------------------------------------------------------
+Based on Task 2 baseline (13 implemented MCP tools):
+
+IMPLEMENTED (13 tools):
+- list_frameworks
+- list_controls
+- get_control_details
+- search_controls
+- get_control_context
+- document_compliance
+- link_evidence
+- get_documentation
+- export_documentation
+- compare_frameworks
+- get_framework_gap
+- get_guidance
+- get_assessment_questions (not in original spec, added to table)
+
+NOT IMPLEMENTED (7 tools from design doc):
+- evaluate_compliance
+- assess_control (partial via get_assessment_questions)
+- interview_control (partial via get_assessment_questions)
+- manage_framework (CLI alternative exists)
+- import_framework
+- build_mapping
+
+================================================================================
+END OF EVIDENCE
+================================================================================

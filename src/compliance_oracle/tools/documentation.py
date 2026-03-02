@@ -1,13 +1,12 @@
 """Documentation mode tools for recording compliance state."""
 
 from pathlib import Path
+from typing import Any
 
 from fastmcp import FastMCP
 
 from compliance_oracle.documentation.state import ComplianceStateManager
 from compliance_oracle.models.schemas import (
-    ComplianceState,
-    ComplianceSummary,
     ControlDocumentation,
     ControlStatus,
     Evidence,
@@ -18,7 +17,7 @@ from compliance_oracle.models.schemas import (
 def register_documentation_tools(mcp: FastMCP) -> None:
     """Register documentation tools with the MCP server."""
 
-    @mcp.tool()
+    @mcp.tool()  # type: ignore[untyped-decorator]
     async def document_compliance(
         control_id: str,
         status: str,
@@ -27,7 +26,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
         owner: str | None = None,
         notes: str | None = None,
         project_path: str = ".",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Record that a control is satisfied (or partially satisfied).
 
         Args:
@@ -64,7 +63,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
             "message": f"Control {control_id} documented as {status}",
         }
 
-    @mcp.tool()
+    @mcp.tool()  # type: ignore[untyped-decorator]
     async def link_evidence(
         control_id: str,
         evidence_type: str,
@@ -74,7 +73,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
         line_start: int | None = None,
         line_end: int | None = None,
         project_path: str = ".",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Add evidence to an already-documented control.
 
         Args:
@@ -117,7 +116,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
             "message": f"Evidence linked to {control_id}",
         }
 
-    @mcp.tool()
+    @mcp.tool()  # type: ignore[untyped-decorator]
     async def get_documentation(
         framework: str = "nist-csf-2.0",
         function: str | None = None,
@@ -125,7 +124,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
         status: str | None = None,
         include_evidence: bool = False,
         project_path: str = ".",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Retrieve current compliance documentation state.
 
         Args:
@@ -168,7 +167,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
             "generated_at": state.updated_at.isoformat(),
         }
 
-    @mcp.tool()
+    @mcp.tool()  # type: ignore[untyped-decorator]
     async def export_documentation(
         format: str = "markdown",
         framework: str = "nist-csf-2.0",
@@ -176,7 +175,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
         include_gaps: bool = True,
         output_path: str | None = None,
         project_path: str = ".",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Export compliance documentation in various formats.
 
         Args:

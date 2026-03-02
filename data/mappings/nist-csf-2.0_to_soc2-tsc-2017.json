@@ -1,0 +1,324 @@
+{
+  "source_framework": "nist-csf-2.0",
+  "target_framework": "soc2-tsc-2017",
+  "version": "1.0",
+  "created_date": "2026-03-01",
+  "description": "Mapping between NIST CSF 2.0 subcategories and SOC 2 TSC 2017 controls",
+  "mappings": [
+    {
+      "source_control_id": "GV.RR-01",
+      "source_control_name": "Leadership is accountable for cybersecurity risk",
+      "target_control_id": "CC1.1",
+      "target_control_name": "Governance Structure",
+      "relationship": "equivalent",
+      "confidence": 0.93,
+      "notes": "Both emphasize governance oversight and accountability for control performance."
+    },
+    {
+      "source_control_id": "GV.RM-02",
+      "source_control_name": "Risk appetite and tolerance statements are established",
+      "target_control_id": "CC1.2",
+      "target_control_name": "Accountability and Responsibility",
+      "relationship": "equivalent",
+      "confidence": 0.91,
+      "notes": "Both require leadership-defined risk tolerance and accountability expectations."
+    },
+    {
+      "source_control_id": "PR.AT-02",
+      "source_control_name": "Specialized roles receive cybersecurity training",
+      "target_control_id": "CC1.3",
+      "target_control_name": "Competence and Continuous Improvement",
+      "relationship": "related",
+      "confidence": 0.82,
+      "notes": "CSF role-based training supports SOC2 competency objectives but does not fully cover performance management aspects."
+    },
+    {
+      "source_control_id": "GV.PO-01",
+      "source_control_name": "Cybersecurity risk policy is established and enforced",
+      "target_control_id": "CC2.1",
+      "target_control_name": "Internal Communication",
+      "relationship": "equivalent",
+      "confidence": 0.89,
+      "notes": "Policy communication and enforcement align with internal control communication needs."
+    },
+    {
+      "source_control_id": "GV.RM-05",
+      "source_control_name": "Risk communication lines are established",
+      "target_control_id": "CC2.2",
+      "target_control_name": "External Communication",
+      "relationship": "related",
+      "confidence": 0.78,
+      "notes": "CSF communication includes external third-party risk channels, partially overlapping SOC2 external communication expectations."
+    },
+    {
+      "source_control_id": "ID.AM-07",
+      "source_control_name": "Data inventories and metadata are maintained",
+      "target_control_id": "CC2.3",
+      "target_control_name": "Information Flow and Documentation",
+      "relationship": "narrower",
+      "confidence": 0.83,
+      "notes": "Data inventory supports information quality and documentation but does not fully represent SOC2 information flow governance."
+    },
+    {
+      "source_control_id": "PR.DS-01",
+      "source_control_name": "Data-at-rest CIA protections",
+      "target_control_id": "CC3.1",
+      "target_control_name": "Data Protection",
+      "relationship": "equivalent",
+      "confidence": 0.94,
+      "notes": "Both require controls that protect sensitive data from unauthorized access or alteration."
+    },
+    {
+      "source_control_id": "PR.AC-05",
+      "source_control_name": "Network integrity and segmentation protections",
+      "target_control_id": "CC3.2",
+      "target_control_name": "System Boundaries",
+      "relationship": "equivalent",
+      "confidence": 0.9,
+      "notes": "Segmentation and boundary protection directly align with SOC2 system boundary controls."
+    },
+    {
+      "source_control_id": "RS.RP-01",
+      "source_control_name": "Response plan execution",
+      "target_control_id": "CC3.3",
+      "target_control_name": "Security Incident Response",
+      "relationship": "narrower",
+      "confidence": 0.84,
+      "notes": "CSF response-plan execution is one part of SOC2's broader detect-respond-recover incident lifecycle criterion."
+    },
+    {
+      "source_control_id": "PR.AA-05",
+      "source_control_name": "Access permissions are policy-defined and enforced",
+      "target_control_id": "CC4.1",
+      "target_control_name": "Access Management",
+      "relationship": "equivalent",
+      "confidence": 0.93,
+      "notes": "Least privilege and entitlement governance map directly to SOC2 access management requirements."
+    },
+    {
+      "source_control_id": "PR.AA-03",
+      "source_control_name": "Users, services, and hardware are authenticated",
+      "target_control_id": "CC4.2",
+      "target_control_name": "Authentication",
+      "relationship": "equivalent",
+      "confidence": 0.94,
+      "notes": "Both require robust user and system authentication mechanisms."
+    },
+    {
+      "source_control_id": "PR.AA-06",
+      "source_control_name": "Physical access is managed and enforced",
+      "target_control_id": "CC4.3",
+      "target_control_name": "Physical Access",
+      "relationship": "equivalent",
+      "confidence": 0.92,
+      "notes": "Physical protection and monitoring expectations are directly aligned."
+    },
+    {
+      "source_control_id": "DE.CM-07",
+      "source_control_name": "Monitoring for unauthorized users, devices, and software",
+      "target_control_id": "CC5.1",
+      "target_control_name": "System Monitoring",
+      "relationship": "broader",
+      "confidence": 0.86,
+      "notes": "CSF continuous monitoring objective extends beyond baseline SOC2 monitoring and includes explicit unauthorized-activity detection scope."
+    },
+    {
+      "source_control_id": "PR.MA-01",
+      "source_control_name": "Maintenance and repair are performed and logged",
+      "target_control_id": "CC5.2",
+      "target_control_name": "System Maintenance",
+      "relationship": "equivalent",
+      "confidence": 0.91,
+      "notes": "Both require controlled, logged maintenance activities."
+    },
+    {
+      "source_control_id": "PR.DS-11",
+      "source_control_name": "Backups are created, protected, maintained, and tested",
+      "target_control_id": "CC5.3",
+      "target_control_name": "Backup and Recovery",
+      "relationship": "equivalent",
+      "confidence": 0.94,
+      "notes": "Backup lifecycle and testing requirements are closely aligned."
+    },
+    {
+      "source_control_id": "PR.AC-01",
+      "source_control_name": "Credentials are issued, managed, revoked, and audited",
+      "target_control_id": "CC6.1",
+      "target_control_name": "Access Control Policies",
+      "relationship": "equivalent",
+      "confidence": 0.9,
+      "notes": "Identity lifecycle controls operationalize SOC2 logical access policy requirements."
+    },
+    {
+      "source_control_id": "PR.AC-04",
+      "source_control_name": "Access authorizations follow least privilege and separation of duties",
+      "target_control_id": "CC6.2",
+      "target_control_name": "User Account Management",
+      "relationship": "equivalent",
+      "confidence": 0.92,
+      "notes": "Both require managed user access rights with review and constraints."
+    },
+    {
+      "source_control_id": "PR.AA-05",
+      "source_control_name": "Entitlements and authorizations are managed and reviewed",
+      "target_control_id": "CC6.3",
+      "target_control_name": "Privileged Access Management",
+      "relationship": "narrower",
+      "confidence": 0.88,
+      "notes": "CSF entitlement governance partially covers privileged access controls but is not limited to privileged accounts."
+    },
+    {
+      "source_control_id": "PR.PS-01",
+      "source_control_name": "Configuration management practices are established",
+      "target_control_id": "CC7.3",
+      "target_control_name": "Configuration Management",
+      "relationship": "equivalent",
+      "confidence": 0.93,
+      "notes": "Configuration baseline and maintenance expectations are directly similar."
+    },
+    {
+      "source_control_id": "PR.PS-06",
+      "source_control_name": "Secure software development practices are integrated",
+      "target_control_id": "CC7.1",
+      "target_control_name": "Software Management",
+      "relationship": "related",
+      "confidence": 0.83,
+      "notes": "CSF secure SDLC practices support software governance outcomes but SOC2 also emphasizes inventory and authorization."
+    },
+    {
+      "source_control_id": "PR.DS-01",
+      "source_control_name": "Data-at-rest CIA protections",
+      "target_control_id": "CC7.2",
+      "target_control_name": "Data Management",
+      "relationship": "narrower",
+      "confidence": 0.81,
+      "notes": "Data-at-rest controls are a subset of broader SOC2 data lifecycle management obligations."
+    },
+    {
+      "source_control_id": "PR.IP-03",
+      "source_control_name": "Configuration change control processes are in place",
+      "target_control_id": "CC8.1",
+      "target_control_name": "Change Control Process",
+      "relationship": "equivalent",
+      "confidence": 0.92,
+      "notes": "Both require formal, authorized change management workflows."
+    },
+    {
+      "source_control_id": "PR.IP-10",
+      "source_control_name": "Response and recovery plans are tested",
+      "target_control_id": "CC8.2",
+      "target_control_name": "Change Testing and Approval",
+      "relationship": "related",
+      "confidence": 0.74,
+      "notes": "Plan testing is conceptually similar to pre-implementation testing rigor, but control intent differs."
+    },
+    {
+      "source_control_id": "RS.MI-03",
+      "source_control_name": "New vulnerabilities are mitigated or risk-accepted",
+      "target_control_id": "CC8.3",
+      "target_control_name": "Emergency Changes",
+      "relationship": "related",
+      "confidence": 0.71,
+      "notes": "Urgent mitigation workflows overlap with emergency change handling but are not strictly equivalent."
+    },
+    {
+      "source_control_id": "ID.RA-05",
+      "source_control_name": "Threats, vulnerabilities, impacts, and likelihoods inform risk prioritization",
+      "target_control_id": "CC9.1",
+      "target_control_name": "Risk Assessment",
+      "relationship": "equivalent",
+      "confidence": 0.93,
+      "notes": "Both require systematic assessment and prioritization of risk."
+    },
+    {
+      "source_control_id": "GV.SC-07",
+      "source_control_name": "Supplier and third-party risks are assessed and monitored",
+      "target_control_id": "CC9.2",
+      "target_control_name": "Third-Party Risk Management",
+      "relationship": "equivalent",
+      "confidence": 0.92,
+      "notes": "Supplier risk governance aligns closely with SOC2 third-party risk control objectives."
+    },
+    {
+      "source_control_id": "RC.RP-01",
+      "source_control_name": "Recovery plan is executed",
+      "target_control_id": "CC9.3",
+      "target_control_name": "Business Continuity",
+      "relationship": "narrower",
+      "confidence": 0.86,
+      "notes": "Execution of cyber recovery plans contributes to but does not fully represent enterprise continuity management."
+    },
+    {
+      "source_control_id": "PR.DS-04",
+      "source_control_name": "Adequate capacity to ensure availability is maintained",
+      "target_control_id": "A1.1",
+      "target_control_name": "Availability Objectives",
+      "relationship": "related",
+      "confidence": 0.8,
+      "notes": "Capacity and resilience safeguards support availability commitments but do not define service objectives alone."
+    },
+    {
+      "source_control_id": "RC.RP-01",
+      "source_control_name": "Recovery plan is executed",
+      "target_control_id": "A1.2",
+      "target_control_name": "Recovery Planning",
+      "relationship": "equivalent",
+      "confidence": 0.92,
+      "notes": "Both focus on maintaining and executing recovery capabilities for service restoration."
+    },
+    {
+      "source_control_id": "PR.DS-06",
+      "source_control_name": "Integrity checking verifies software, firmware, and information integrity",
+      "target_control_id": "PI1.2",
+      "target_control_name": "Processing Accuracy",
+      "relationship": "related",
+      "confidence": 0.79,
+      "notes": "Integrity verification supports accurate processing outcomes but does not fully address end-to-end business processing logic."
+    },
+    {
+      "source_control_id": "PR.PT-01",
+      "source_control_name": "Audit/log records are defined, implemented, and reviewed",
+      "target_control_id": "PI2.2",
+      "target_control_name": "Audit Trail",
+      "relationship": "equivalent",
+      "confidence": 0.91,
+      "notes": "Logging and review practices map directly to SOC2 audit trail criteria."
+    },
+    {
+      "source_control_id": "ID.AM-05",
+      "source_control_name": "Assets are prioritized using classification and criticality",
+      "target_control_id": "C1.1",
+      "target_control_name": "Data Classification",
+      "relationship": "related",
+      "confidence": 0.77,
+      "notes": "Asset classification and prioritization overlap with confidentiality classification but have broader asset scope."
+    },
+    {
+      "source_control_id": "PR.AC-04",
+      "source_control_name": "Least-privilege access permissions are managed",
+      "target_control_id": "C1.2",
+      "target_control_name": "Access Restrictions",
+      "relationship": "equivalent",
+      "confidence": 0.9,
+      "notes": "Least-privilege authorization directly supports restricting access to confidential information."
+    },
+    {
+      "source_control_id": "GV.OC-03",
+      "source_control_name": "Legal and regulatory requirements (including privacy) are managed",
+      "target_control_id": "P1.1",
+      "target_control_name": "Privacy Notice",
+      "relationship": "related",
+      "confidence": 0.76,
+      "notes": "Compliance with privacy obligations supports notice requirements but does not itself define notice content."
+    },
+    {
+      "source_control_id": "PR.DS-07",
+      "source_control_name": "Development and testing environments are separated from production",
+      "target_control_id": "P2.2",
+      "target_control_name": "Data Use and Retention",
+      "relationship": "narrower",
+      "confidence": 0.67,
+      "notes": "Environment separation reduces misuse exposure for personal data processing but only partially addresses full use and retention obligations."
+    }
+  ]
+}

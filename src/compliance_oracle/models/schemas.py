@@ -1,6 +1,6 @@
 """Pydantic schemas for compliance data structures."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -172,7 +172,7 @@ class ControlDocumentation(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
     owner: str | None = Field(default=None)
     notes: str | None = Field(default=None)
-    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     # Optional metadata from hybrid intelligence analysis
     intelligence_metadata: IntelligenceMetadata | None = Field(
@@ -185,8 +185,8 @@ class ComplianceState(BaseModel):
 
     version: str = Field(default="1.0")
     project_name: str | None = Field(default=None)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     controls: dict[str, ControlDocumentation] = Field(
         default_factory=dict, description="Keyed by 'framework_id:control_id'"
     )

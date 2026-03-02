@@ -6,7 +6,32 @@
 
 ---
 
-## 1. Executive Summary
+> **⚠️ DOCUMENT STATUS: HISTORICAL VISION DOCUMENT**
+>
+> This document represents the original design vision for Compliance Oracle. It contains
+> both implemented features and planned/future capabilities. For current capabilities,
+> see **README.md** which is the authoritative source.
+>
+> **Status Legend:**
+> - `✅ IMPLEMENTED` - Feature is available in current release
+> - `🔴 NOT IMPLEMENTED` - Feature planned but not yet built
+> - `🫂 PARTIAL` - Feature exists with differences from original spec
+#YT|
+#KH|---
+#RJ|
+#VM|### Current Scope (as of latest release)
+#XW|
+#ZQ|**Implemented Frameworks:**
+#JH|- NIST CSF 2.0 (fully supported)
+#YP|- NIST SP 800-53 Rev. 5 (fully supported)
+#MT|
+#PP|**Planned Frameworks** (see README.md Roadmap for timeline):
+#XK|- NIST SP 800-171 Rev. 2/3 (R-012)
+#PV|- SOC 2 Trust Service Principles (R-013)
+#MS|- ISO 27001:2022 (EPIC-002)
+#BQ|
+#VN|---
+#BM|
 
 The Compliance Oracle is an MCP (Model Context Protocol) server designed to evaluate design documents and code against compliance frameworks (starting with NIST CSF 2.0). Unlike existing NIST tools focused on organizational maturity assessment, this agent serves as a **code review auditor** — identifying non-compliance without providing fixes.
 
@@ -157,11 +182,12 @@ This multi-mode design creates a complete compliance lifecycle: **evaluate → d
 │  │ChromaDB │  │ Framework │  │  Compliance    │  │  LLM    │      │
 │  │(Vectors)│  │   Data    │  │  State (JSON)  │  │ Client  │      │
 │  │         │  │           │  │                │  │         │      │
-│  │• CSF 2.0│  │• Schemas  │  │• Documented    │  │• Claude │      │
-│  │• 800-53 │  │• Mappings │  │  controls      │  │• OpenAI │      │
-│  │• 800-171│  │• Metadata │  │• Evidence links│  │• Ollama │      │
-│  │• SOC2   │  │           │  │• Status        │  │         │      │
-│  │• ISO    │  │           │  │                │  │         │      │
+#HJ|│  │• CSF 2.0│  │• Schemas  │  │• Documented    │  │• Claude │      │
+#BZ|│  │• 800-53 │  │• Mappings │  │  controls      │  │• OpenAI │      │
+#SK|│  │• 800-171│  │• Metadata │  │• Evidence links│  │• Ollama │      │
+#RX|│  │ (planned)│  │           │  │• Status        │  │         │      │
+#KX|│  │• SOC2   │  │           │  │                │  │         │      │
+#KT|│  │ (planned)│  │           │  │                │  │         │      │
 │  └─────────┘  └───────────┘  └────────────────┘  └─────────┘      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -184,7 +210,10 @@ Built-in mappings between frameworks enable "what more do I need?" analysis.
 
 ## 4. MCP Tool Specifications
 
-### 4.1 `evaluate_compliance`
+### 4.1 `evaluate_compliance` 🔴 NOT IMPLEMENTED
+
+> **Status:** This tool is planned but not yet implemented. The current release focuses on
+> documentation and guidance tools. See README.md for available tools.
 
 **Purpose:** Primary tool for compliance evaluation
 
@@ -275,7 +304,7 @@ Built-in mappings between frameworks enable "what more do I need?" analysis.
 }
 ```
 
-### 4.2 `get_control_details`
+### 4.2 `get_control_details` ✅ IMPLEMENTED
 
 **Purpose:** Retrieve full details for a specific control
 
@@ -299,7 +328,7 @@ Built-in mappings between frameworks enable "what more do I need?" analysis.
 
 **Output:** Full control text, implementation examples, related controls
 
-### 4.3 `list_controls`
+### 4.3 `list_controls` ✅ IMPLEMENTED
 
 **Purpose:** Browse the framework hierarchy
 
@@ -315,20 +344,19 @@ Built-in mappings between frameworks enable "what more do I need?" analysis.
 }
 ```
 
-### 4.4 `list_frameworks`
+### 4.4 `list_frameworks` ✅ IMPLEMENTED
 
 **Purpose:** Show available compliance frameworks
 
 **Output:**
 ```json
-{
-  "frameworks": [
-    {"id": "nist-csf-2.0", "name": "NIST Cybersecurity Framework 2.0", "status": "active"},
-    {"id": "nist-800-53", "name": "NIST SP 800-53 Rev 5", "status": "planned"},
-    {"id": "nist-800-171", "name": "NIST SP 800-171 Rev 2", "status": "planned"}
-  ]
-}
-```
+#PV|{
+#KK|  "frameworks": [
+#YP|    {"id": "nist-csf-2.0", "name": "NIST Cybersecurity Framework 2.0", "status": "active"},
+#QR|    {"id": "nist-800-53", "name": "NIST SP 800-53 Rev 5", "status": "active"},
+#BY|    {"id": "nist-800-171", "name": "NIST SP 800-171 Rev 2", "status": "planned"}
+#RQ|  ]
+#YJ|}
 
 ---
 
@@ -336,7 +364,7 @@ Built-in mappings between frameworks enable "what more do I need?" analysis.
 
 These tools are designed for human-LLM chat sessions where users want to explore frameworks, get guidance, and perform self-assessments.
 
-### 5.1 `search_controls`
+### 5.1 `search_controls` ✅ IMPLEMENTED
 
 **Purpose:** Semantic search across all framework controls — the RAG capability exposed directly
 
@@ -396,7 +424,7 @@ Results:
 - PR.DS-10: Data-in-use confidentiality (0.85)
 ```
 
-### 5.2 `get_guidance`
+### 5.2 `get_guidance` ✅ IMPLEMENTED
 
 **Purpose:** Detailed implementation guidance for a specific control
 
@@ -447,7 +475,10 @@ Results:
 }
 ```
 
-### 5.3 `assess_control`
+### 5.3 `assess_control` 🔴 NOT IMPLEMENTED
+
+> **Note:** The current release includes `get_assessment_questions` which provides
+> question generation but not the full evaluate_response flow described here.
 
 **Purpose:** Interactive self-assessment for a single control — returns assessment questions and evaluates responses
 
@@ -517,7 +548,7 @@ Results:
 }
 ```
 
-### 5.4 `compare_frameworks`
+### 5.4 `compare_frameworks` ✅ IMPLEMENTED
 
 **Purpose:** Compare controls across frameworks or show mappings
 
@@ -571,7 +602,7 @@ Results:
 }
 ```
 
-### 5.5 `get_control_context`
+### 5.5 `get_control_context` ✅ IMPLEMENTED
 
 **Purpose:** Get full context for a control including related controls, parent/child relationships, and cross-references
 
@@ -617,7 +648,7 @@ Results:
 
 These tools enable recording compliance state, linking evidence, and exporting for audits.
 
-### 6.1 `document_compliance`
+### 6.1 `document_compliance` ✅ IMPLEMENTED
 
 **Purpose:** Record that a control is satisfied (or partially satisfied) by your implementation
 
@@ -692,7 +723,7 @@ These tools enable recording compliance state, linking evidence, and exporting f
 }
 ```
 
-### 6.2 `link_evidence`
+### 6.2 `link_evidence` ✅ IMPLEMENTED
 
 **Purpose:** Add evidence to an already-documented control
 
@@ -718,9 +749,10 @@ These tools enable recording compliance state, linking evidence, and exporting f
 }
 ```
 
-### 6.3 `interview_control`
+### 6.3 `interview_control` ✅ IMPLEMENTED
 
 **Purpose:** Guided Q&A to document a control — like a GRC portal questionnaire but conversational
+
 
 **Input Schema:**
 ```json
@@ -804,7 +836,7 @@ These tools enable recording compliance state, linking evidence, and exporting f
 }
 ```
 
-### 6.4 `get_documentation`
+### 6.4 `get_documentation` ✅ IMPLEMENTED
 
 **Purpose:** Retrieve current compliance documentation state
 
@@ -857,7 +889,7 @@ These tools enable recording compliance state, linking evidence, and exporting f
 }
 ```
 
-### 6.5 `export_documentation`
+### 6.5 `export_documentation` ✅ IMPLEMENTED
 
 **Purpose:** Export compliance documentation in various formats
 
@@ -930,7 +962,10 @@ Customer databases use TDE with customer-managed keys in Azure Key Vault.
 
 These tools handle downloading, adding, updating, and mapping compliance frameworks.
 
-### 7.1 `manage_framework`
+### 7.1 `manage_framework` 🔴 NOT IMPLEMENTED
+
+> **Note:** Framework management is currently available via CLI commands (`compliance-oracle fetch`,
+> `compliance-oracle validate`) rather than MCP tools. An MCP tool for framework management is planned.
 
 **Purpose:** Download, update, or remove compliance frameworks
 
@@ -1002,7 +1037,7 @@ These tools handle downloading, adding, updating, and mapping compliance framewo
 }
 ```
 
-### 7.2 `import_framework`
+### 7.2 `import_framework` 🔴 NOT IMPLEMENTED
 
 **Purpose:** Import a custom framework from structured data or use LLM to parse unstructured documents
 
@@ -1073,7 +1108,7 @@ These tools handle downloading, adding, updating, and mapping compliance framewo
 6. Framework is ingested into ChromaDB
 ```
 
-### 7.3 `get_framework_gap`
+### 7.3 `get_framework_gap` ✅ IMPLEMENTED
 
 **Purpose:** Analyze what's needed to achieve compliance with a target framework given your current compliance state
 
@@ -1175,7 +1210,7 @@ Claude: [calls get_framework_gap with current="nist-csf-2.0", target="soc2-trust
         Want me to detail any specific gap?"
 ```
 
-### 7.4 `build_mapping`
+### 7.4 `build_mapping` 🔴 NOT IMPLEMENTED
 
 **Purpose:** Create or update mappings between frameworks (can be LLM-assisted)
 
@@ -1207,7 +1242,33 @@ Claude: [calls get_framework_gap with current="nist-csf-2.0", target="soc2-trust
 
 ### All Tools by Mode
 
-| Tool | Mode | LLM Required | Purpose |
+| Tool | Mode | Status | LLM Required | Purpose |
+|------|------|--------|--------------|---------|
+| **Agent Mode** |||||
+| `evaluate_compliance` | Agent | 🔴 NOT IMPLEMENTED | Yes | Evaluate design/code for violations |
+| **Interactive Mode** |||||
+| `search_controls` | Interactive | ✅ IMPLEMENTED | No | Semantic search across frameworks |
+| `get_guidance` | Interactive | ✅ IMPLEMENTED | No* | Implementation guidance for a control |
+| `assess_control` | Interactive | 🔴 NOT IMPLEMENTED | Yes | Self-assessment with evaluation |
+| `compare_frameworks` | Interactive | ✅ IMPLEMENTED | No | Cross-framework mappings |
+| `get_control_context` | Interactive | ✅ IMPLEMENTED | No | Related controls and hierarchy |
+| **Documentation Mode** |||||
+| `document_compliance` | Documentation | ✅ IMPLEMENTED | No | Record control implementation |
+| `link_evidence` | Documentation | ✅ IMPLEMENTED | No | Attach evidence to controls |
+| `interview_control` | Documentation | 🔴 NOT IMPLEMENTED | Yes | Guided Q&A collection |
+| `get_documentation` | Documentation | ✅ IMPLEMENTED | No | View current compliance state |
+| `export_documentation` | Documentation | ✅ IMPLEMENTED | No | Export for auditors/GRC |
+| **Framework Management** |||||
+| `manage_framework` | Management | 🔴 NOT IMPLEMENTED | No | Download/update/remove frameworks |
+| `import_framework` | Management | 🔴 NOT IMPLEMENTED | Yes* | Import custom frameworks |
+| `get_framework_gap` | Management | ✅ IMPLEMENTED | No | Cross-framework gap analysis |
+| `build_mapping` | Management | 🔴 NOT IMPLEMENTED | Yes | Create framework mappings |
+| **Shared Tools** |||||
+| `get_control_details` | Shared | ✅ IMPLEMENTED | No | Lookup specific control details |
+| `list_controls` | Shared | ✅ IMPLEMENTED | No | Browse framework hierarchy |
+| `list_frameworks` | Shared | ✅ IMPLEMENTED | No | Show available frameworks |
+| **Additional Implemented Tools** |||||
+| `get_assessment_questions` | Assessment | ✅ IMPLEMENTED | No | Generate assessment question templates |
 |------|------|--------------|---------|
 | **Agent Mode** ||||
 | `evaluate_compliance` | Agent | Yes | Evaluate design/code for violations |
@@ -1512,62 +1573,64 @@ if result["findings_count"] > 0:
 
 ## 13. Implementation Phases
 
-### Phase 1: Foundation (Week 1-2)
-- [ ] Set up MCP server skeleton (FastMCP or TypeScript SDK)
-- [ ] Download and parse NIST CSF 2.0 data
-- [ ] Create JSON data structure with keywords for RAG
-- [ ] Ingest into ChromaDB
-- [ ] Implement shared tools: `get_control_details`, `list_controls`, `list_frameworks`
-- [ ] Basic testing
+> **Current Progress Summary (as of Feb 2026):**
+> - ✅ Phase 1 (Foundation): Complete
+> - ✅ Phase 2 (Interactive Mode): Complete
+> - ❌ Phase 3 (Evaluation Engine): Not started
+> - 🫂 Phase 4 (Documentation Mode): Mostly complete (interview_control not implemented)
+> - 🫂 Phase 5 (Framework Management): Partial (get_framework_gap, compare_frameworks implemented)
+> - 🫂 Phase 6 (Integration): Partial
+> - 🫂 Phase 7 (Expand Frameworks): Partial (NIST 800-53 implemented)
 
-### Phase 2: Interactive Mode Tools (Week 3)
-- [ ] Implement `search_controls` (RAG search exposed)
-- [ ] Implement `get_control_context` (hierarchy/relationships)
-- [ ] Implement `get_guidance` (implementation guidance)
-- [ ] Test interactive mode with Claude/ChatGPT + MCP
-
-### Phase 3: Evaluation Engine (Week 4-5)
+### Phase 1: Foundation (Week 1-2) ✅ COMPLETE
+- [x] Set up MCP server skeleton (FastMCP or TypeScript SDK)
+- [x] Download and parse NIST CSF 2.0 data
+- [x] Create JSON data structure with keywords for RAG
+- [x] Ingest into ChromaDB
+- [x] Implement shared tools: `get_control_details`, `list_controls`, `list_frameworks`
+- [x] Basic testing
+### Phase 2: Interactive Mode Tools (Week 3) ✅ COMPLETE
+- [x] Implement `search_controls` (RAG search exposed)
+- [x] Implement `get_control_context` (hierarchy/relationships)
+- [x] Implement `get_guidance` (implementation guidance)
+- [x] Test interactive mode with Claude/ChatGPT + MCP
+### Phase 3: Evaluation Engine (Week 4-5) 🔴 NOT STARTED
 - [ ] Implement RAG search pipeline for evaluation
 - [ ] Create evaluation system prompt (auditor persona)
 - [ ] Wire up LLM client abstraction (Claude, OpenAI, Ollama)
 - [ ] Implement `evaluate_compliance` tool
-- [ ] Implement `assess_control` tool
+- [ ] Implement `assess_control` tool (note: `get_assessment_questions` provides question generation)
 - [ ] Output formatting and structured responses
 - [ ] Test against sample design docs
-
-### Phase 4: Documentation Mode (Week 6-7)
-- [ ] Design compliance state JSON schema
-- [ ] Implement `document_compliance` tool
-- [ ] Implement `link_evidence` tool
-- [ ] Implement `interview_control` with question generation
-- [ ] Implement `get_documentation` tool
-- [ ] Implement `export_documentation` (Markdown, JSON, CSV)
-- [ ] Test documentation workflow end-to-end
-
-### Phase 5: Framework Management (Week 8-9)
-- [ ] Implement `manage_framework` (download, update, validate)
+### Phase 4: Documentation Mode (Week 6-7) 🫂 PARTIAL
+- [x] Design compliance state JSON schema
+- [x] Implement `document_compliance` tool
+- [x] Implement `link_evidence` tool
+- [ ] Implement `interview_control` with question generation (note: `get_assessment_questions` exists)
+- [x] Implement `get_documentation` tool
+- [x] Implement `export_documentation` (Markdown, JSON)
+- [x] Test documentation workflow end-to-end
+### Phase 5: Framework Management (Week 8-9) 🫂 PARTIAL
+- [ ] Implement `manage_framework` (note: CLI has `fetch` and `validate` commands)
 - [ ] Implement `import_framework` with JSON/CSV support
 - [ ] Add LLM-assisted parsing for unstructured imports
-- [ ] Build initial cross-framework mappings (CSF ↔ 800-53)
-- [ ] Implement `get_framework_gap` analysis
+- [x] Build initial cross-framework mappings (CSF ↔ 800-53)
+- [x] Implement `get_framework_gap` analysis
 - [ ] Implement `build_mapping` tool
-- [ ] Implement `compare_frameworks` tool
-
-### Phase 6: Integration & Polish (Week 10)
-- [ ] Oh-My-Opencode command integration
-- [ ] Configuration file support (LLM selection, etc.)
-- [ ] Documentation for agent integration
-- [ ] Error handling and edge cases
-- [ ] Performance optimization
-
-### Phase 7: Expand Frameworks (Ongoing)
-- [ ] Ingest NIST 800-53 Rev 5
+- [x] Implement `compare_frameworks` tool
+### Phase 6: Integration & Polish (Week 10) 🫂 PARTIAL
+- [x] Oh-My-Opencode command integration
+- [x] Configuration file support (LLM selection, etc.)
+- [x] Documentation for agent integration
+- [x] Error handling and edge cases
+- [x] Performance optimization
+### Phase 7: Expand Frameworks (Ongoing) 🫂 PARTIAL
+- [x] Ingest NIST 800-53 Rev 5
 - [ ] Ingest NIST 800-171 Rev 2
 - [ ] Add SOC 2 Trust Service Principles
 - [ ] Add ISO 27001:2022 (if licensing allows)
 - [ ] Build comprehensive cross-framework mappings
 - [ ] Community framework contributions
-
 ---
 
 ## 14. File Structure

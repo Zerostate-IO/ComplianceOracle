@@ -7,6 +7,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from compliance_oracle.documentation.state import ComplianceStateManager
 from compliance_oracle.frameworks.manager import FrameworkManager
 from compliance_oracle.rag.search import ControlSearcher
 
@@ -23,7 +24,7 @@ def main() -> None:
 @click.option(
     "--framework",
     "-f",
-    type=click.Choice(["all", "nist-csf-2.0", "nist-800-53-r5"]),
+    type=click.Choice(["all", "nist-csf-2.0", "nist-800-53-r5", "nist-800-171-r2"]),
     default="all",
     help="Framework to fetch (default: all)",
 )
@@ -49,15 +50,13 @@ async def _fetch(framework: str, output_dir: Path | None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     frameworks_to_fetch = []
-    if framework == "all":
-        frameworks_to_fetch = ["nist-csf-2.0", "nist-800-53-r5"]
-    else:
-        frameworks_to_fetch = [framework]
+    frameworks_to_fetch = ["nist-csf-2.0", "nist-800-53-r5", "nist-800-171-r2"] if framework == "all" else [framework]
 
     # NIST CPRT API endpoints
     endpoints = {
         "nist-csf-2.0": "https://csrc.nist.gov/extensions/nudp/services/json/nudp/framework/version/csf_2_0_0/export/json?element=all",
         "nist-800-53-r5": "https://csrc.nist.gov/extensions/nudp/services/json/nudp/framework/version/sp_800_53_5_1_1/export/json?element=all",
+        "nist-800-171-r2": "https://csrc.nist.gov/extensions/nudp/services/json/nudp/framework/version/sp_800_171_2_0_0/export/json?element=all",
     }
 
     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -85,7 +84,7 @@ async def _fetch(framework: str, output_dir: Path | None) -> None:
 @click.option(
     "--framework",
     "-f",
-    type=click.Choice(["all", "nist-csf-2.0", "nist-800-53-r5"]),
+    type=click.Choice(["all", "nist-csf-2.0", "nist-800-53-r5", "nist-800-171-r2"]),
     default="all",
     help="Framework to validate",
 )
@@ -162,7 +161,7 @@ async def _status() -> None:
 @click.option(
     "--framework",
     "-f",
-    type=click.Choice(["all", "nist-csf-2.0", "nist-800-53-r5"]),
+    type=click.Choice(["all", "nist-csf-2.0", "nist-800-53-r5", "nist-800-171-r2"]),
     default="all",
     help="Framework to index",
 )
@@ -335,6 +334,101 @@ async def _clear(framework: str | None) -> None:
     else:
         console.print(f"[green]Cleared {count} controls from vector store[/green]")
 
+
+@main.command()
+@click.option(
+    "--format",
+    "-f",
+    "output_format",
+    type=click.Choice(["json", "markdown"]),
+    default="markdown",
+    help="Output format (json or markdown)",
+)
+@click.option(
+    "--framework",
+    "-F",
+    type=str,
+    default="nist-csf-2.0",
+    help="Framework ID to export",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    required=True,
+    help="Output file path",
+)
+@click.option(
+    "--include-evidence",
+    is_flag=True,
+    default=True,
+    help="Include evidence details in export",
+)
+@click.option(
+    "--include-gaps",
+    is_flag=True,
+    default=True,
+    help="Include gap analysis in export",
+)
+@click.option(
+    "--project-path",
+    type=click.Path(path_type=Path),
+    default=Path("."),
+    help="Path to project root",
+)
+def export(
+    output_format: str,
+    framework: str,
+    output: Path,
+    include_evidence: bool,
+    include_gaps: bool,
+    project_path: Path,
+) -> None:
+    """Export compliance documentation to a file."""
+    asyncio.run(_export(output_format, framework, output, include_evidence, include_gaps, project_path))
+
+
+async def _export(
+    output_format: str,
+    framework: str,
+    output: Path,
+    include_evidence: bool,
+    include_gaps: bool,
+    project_path: Path,
+) -> None:
+    """Async implementation of export command."""
+    manager = ComplianceStateManager(project_path)
+
+    # Check if any documentation exists for this framework
+    state = await manager.get_state()
+    prefix = f"{framework}:"
+    has_documentation = any(key.startswith(prefix) for key in state.controls)
+
+    if not has_documentation:
+        console.print(
+            f"[yellow]No documentation found for framework '{framework}'.\n"
+            f"Use 'document_compliance' to record control status first.[/yellow]"
+        )
+        # Still export - it will just show empty/gaps only
+
+    console.print(f"[blue]Exporting {framework} documentation as {output_format}...[/blue]")
+
+    try:
+        content = await manager.export(
+            format=output_format,
+            framework_id=framework,
+            include_evidence=include_evidence,
+            include_gaps=include_gaps,
+        )
+
+        # Write to output file
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(content)
+
+        console.print(f"[green]Exported to {output}[/green]")
+    except Exception as e:
+        console.print(f"[red]Export failed: {e}[/red]")
+        raise click.exceptions.Exit(1)
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,9 @@
+=== Validation Error Test ===
+Error type: ValidationError
+Error message: 1 validation error for IntelligenceMetadata
+analysis_mode
+  Input should be 'deterministic' or 'hybrid' [type=enum, input_value='genius', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/enum
+
+=== Test Passed ===
+Invalid analysis_mode="genius" correctly raised validation error

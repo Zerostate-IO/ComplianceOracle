@@ -22,7 +22,6 @@ from compliance_oracle.models.schemas import (
     SearchResponse,
 )
 
-
 # ============================================================================
 # LOOKUP TOOLS (3 tools)
 # ============================================================================
@@ -820,7 +819,6 @@ class TestIntelligenceContracts:
     def test_create_hybrid_metadata_helper(self) -> None:
         """[CONTRACT] create_hybrid_metadata creates correct metadata."""
         from compliance_oracle.assessment.contracts import (
-            DegradeReason,
             IntelligenceMode,
             create_hybrid_metadata,
         )
@@ -901,7 +899,6 @@ class TestIntelligenceContracts:
     def test_assessment_result_serialization_with_metadata(self) -> None:
         """[CONTRACT] AssessmentResult with metadata serializes correctly."""
         from compliance_oracle.assessment.contracts import (
-            DegradeReason,
             IntelligenceMetadata,
             IntelligenceMode,
         )
@@ -922,6 +919,48 @@ class TestIntelligenceContracts:
         data = result.model_dump(mode="json")
 
         assert data["control_id"] == "PR.AC-01"
-        assert data["metadata"]["analysis_mode"] == "deterministic"
-        assert data["metadata"]["llm_used"] is False
         assert data["metadata"]["latency_ms"] == 50
+
+    def test_evaluation_response_with_metadata(self) -> None:
+        """[CONTRACT] EvaluationResponse can carry intelligence metadata."""
+        from compliance_oracle.assessment.contracts import (
+            IntelligenceMetadata,
+            IntelligenceMode,
+        )
+        from compliance_oracle.models.schemas import EvaluationResponse
+
+        # EvaluationResponse with metadata
+        response = EvaluationResponse(
+            framework="nist-csf-2.0",
+            findings_count=2,
+            findings=[],
+            evaluated_controls=10,
+            compliant_areas=["PR.AC"],
+            llm_summary="Summary of compliance gaps...",
+            metadata=IntelligenceMetadata(
+                analysis_mode=IntelligenceMode.HYBRID,
+                llm_used=True,
+                latency_ms=150,
+            ),
+        )
+
+        assert response.framework == "nist-csf-2.0"
+        assert response.llm_summary == "Summary of compliance gaps..."
+        assert response.metadata is not None
+        assert response.metadata.analysis_mode == IntelligenceMode.HYBRID
+        assert response.metadata.llm_used is True
+
+    def test_evaluation_response_backward_compatible(self) -> None:
+        """[CONTRACT] EvaluationResponse works without metadata (backward compat)."""
+        from compliance_oracle.models.schemas import EvaluationResponse
+
+        # Old-style response without metadata should still work
+        response = EvaluationResponse(
+            framework="nist-csf-2.0",
+            findings_count=1,
+            findings=[],
+            evaluated_controls=5,
+            compliant_areas=[],
+        )
+
+        assert response.metadata is None

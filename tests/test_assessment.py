@@ -7,10 +7,10 @@ Tests cover:
 - MCP tool integration
 """
 
+import time
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
-import time
 
 import pytest
 from fastmcp import FastMCP
@@ -33,7 +33,6 @@ from compliance_oracle.tools.assessment import (
     _interview_submit,
     register_assessment_tools,
 )
-
 
 # ============================================================================
 # HELPER FUNCTION TESTS
@@ -1515,11 +1514,10 @@ class TestIntelligenceConfigValidation:
 
     def test_invalid_intelligence_mode_raises_error(self) -> None:
         """Invalid intelligence_mode raises ValidationError."""
+        import pytest
         from pydantic import ValidationError
 
         from compliance_oracle.assessment.config import IntelligenceConfig
-
-        import pytest
 
         with pytest.raises(ValidationError) as exc_info:
             IntelligenceConfig(intelligence_mode="invalid")  # type: ignore[arg-type]
@@ -1528,11 +1526,10 @@ class TestIntelligenceConfigValidation:
 
     def test_hard_degrade_false_raises_error(self) -> None:
         """Setting hard_degrade to False raises ValidationError."""
+        import pytest
         from pydantic import ValidationError
 
         from compliance_oracle.assessment.config import IntelligenceConfig
-
-        import pytest
 
         with pytest.raises(ValidationError) as exc_info:
             IntelligenceConfig(hard_degrade=False)
@@ -1559,7 +1556,6 @@ class TestLoadIntelligenceConfig:
 
     def test_load_defaults_with_no_env_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Loading config with no env vars returns defaults."""
-        import os
 
         # Clear all relevant env vars
         for key in [
@@ -1671,7 +1667,6 @@ class TestOllamaResult:
         """OllamaResult with ok status has content."""
         from compliance_oracle.assessment.llm.ollama_client import (
             OllamaResult,
-            OllamaStatus,
         )
 
         result = OllamaResult(status="ok", content="Generated text", latency_ms=100)
@@ -1768,7 +1763,6 @@ class TestOllamaClientGenerate:
     @pytest.mark.asyncio
     async def test_successful_response(self, httpx_mock: Any) -> None:
         """Successful Ollama response returns ok status with content."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -1850,7 +1844,6 @@ class TestOllamaClientGenerate:
     @pytest.mark.asyncio
     async def test_malformed_json_response(self, httpx_mock: Any) -> None:
         """Malformed JSON returns error status with OLLAMA_MALFORMED_RESPONSE."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.contracts import DegradeReason
@@ -1875,7 +1868,6 @@ class TestOllamaClientGenerate:
     @pytest.mark.asyncio
     async def test_missing_response_field(self, httpx_mock: Any) -> None:
         """Missing 'response' field returns OLLAMA_MALFORMED_RESPONSE."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.contracts import DegradeReason
@@ -1900,7 +1892,6 @@ class TestOllamaClientGenerate:
     @pytest.mark.asyncio
     async def test_ollama_error_in_body(self, httpx_mock: Any) -> None:
         """Error field in response body returns OLLAMA_UNREACHABLE."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.contracts import DegradeReason
@@ -1925,7 +1916,6 @@ class TestOllamaClientGenerate:
     @pytest.mark.asyncio
     async def test_http_error_status(self, httpx_mock: Any) -> None:
         """HTTP error status returns OLLAMA_UNREACHABLE."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.contracts import DegradeReason
@@ -2088,7 +2078,6 @@ class TestOllamaClientCircuitBreaker:
     @pytest.mark.asyncio
     async def test_circuit_open_no_network_call(self, httpx_mock: Any) -> None:
         """When circuit is open, no network call is made."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.contracts import DegradeReason
@@ -2541,7 +2530,6 @@ class TestIntelligenceOrchestratorAssess:
     @pytest.mark.asyncio
     async def test_assess_hybrid_with_successful_llm(self, httpx_mock: Any) -> None:
         """assess returns enriched result when LLM succeeds."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.contracts import IntelligenceMode
@@ -2667,7 +2655,6 @@ class TestIntelligenceOrchestratorAssess:
     @pytest.mark.asyncio
     async def test_assess_deterministic_preserved_on_llm_conflict(self, httpx_mock: Any) -> None:
         """assess preserves deterministic results even if LLM suggests otherwise."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -2702,7 +2689,6 @@ class TestIntelligenceOrchestratorAssess:
     @pytest.mark.asyncio
     async def test_assess_policy_violation_detected(self, httpx_mock: Any) -> None:
         """assess detects and records policy violations in LLM output."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -2786,7 +2772,6 @@ class TestIntelligenceOrchestratorEvaluate:
     @pytest.mark.asyncio
     async def test_evaluate_hybrid_with_successful_llm(self, httpx_mock: Any) -> None:
         """evaluate returns enriched result when LLM succeeds."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.contracts import IntelligenceMode
@@ -2913,7 +2898,6 @@ class TestIntelligenceOrchestratorEvaluate:
     @pytest.mark.asyncio
     async def test_evaluate_policy_violation_in_summary(self, httpx_mock: Any) -> None:
         """evaluate detects policy violations in LLM summary."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -3077,7 +3061,6 @@ class TestHybridDeterministicParity:
         self, httpx_mock: Any
     ) -> None:
         """LLM cannot change maturity level from deterministic assessment."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -3134,6 +3117,7 @@ class TestHardDegradeBehavior:
     ) -> None:
         """Timeout returns deterministic results with ollama_timeout reason."""
         import asyncio
+
         import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
@@ -3238,7 +3222,6 @@ class TestHardDegradeBehavior:
         self, httpx_mock: Any
     ) -> None:
         """Malformed JSON response returns deterministic results with ollama_malformed_response."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.contracts import DegradeReason
@@ -3273,7 +3256,6 @@ class TestHardDegradeBehavior:
         self, httpx_mock: Any
     ) -> None:
         """Missing 'response' field returns deterministic results with ollama_malformed_response."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.contracts import DegradeReason
@@ -3307,6 +3289,7 @@ class TestHardDegradeBehavior:
     ) -> None:
         """Evaluation timeout returns deterministic results with ollama_timeout reason."""
         import asyncio
+
         import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
@@ -3355,7 +3338,6 @@ class TestPolicyEnforcementRegression:
         self, httpx_mock: Any
     ) -> None:
         """'you should implement' pattern is blocked in assessment LLM output."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -3394,7 +3376,6 @@ class TestPolicyEnforcementRegression:
         self, httpx_mock: Any
     ) -> None:
         """'we recommend' pattern is blocked in assessment LLM output."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -3427,7 +3408,6 @@ class TestPolicyEnforcementRegression:
         self, httpx_mock: Any
     ) -> None:
         """'to fix this' pattern is blocked in assessment LLM output."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -3460,7 +3440,6 @@ class TestPolicyEnforcementRegression:
         self, httpx_mock: Any
     ) -> None:
         """'you must' pattern is blocked in evaluation LLM output."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -3497,7 +3476,6 @@ class TestPolicyEnforcementRegression:
         self, httpx_mock: Any
     ) -> None:
         """'consider implementing' pattern is blocked."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -3530,7 +3508,6 @@ class TestPolicyEnforcementRegression:
         self, httpx_mock: Any
     ) -> None:
         """Sanitized output does not contain forbidden phrases."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
@@ -3568,7 +3545,6 @@ class TestPolicyEnforcementRegression:
         self, httpx_mock: Any
     ) -> None:
         """Allowed gap-identification language passes through without violations."""
-        import httpx
 
         from compliance_oracle.assessment.config import IntelligenceConfig
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient

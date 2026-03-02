@@ -1,0 +1,95 @@
+# Task 7: Documentation Governance Pack - Evidence
+
+**Date**: 2026-02-28
+**Task**: Publish Documentation Governance Pack
+
+## Files Created
+
+### 1. CHANGELOG.md
+
+**Location**: `/Users/legend/projects/ComplianceOracle/CHANGELOG.md`
+**Lines**: 74
+**Format**: Keep a Changelog 1.1.0
+
+**Sections included**:
+- Header with project name and format reference
+- [0.1.3] baseline entry with all 13 MCP tools
+- [Unreleased] section for planned features
+- Version history table
+- Update instructions and ownership rules
+
+**Tool table included**:
+| list_frameworks | list_controls | search_controls |
+| get_control_details | get_control_context | document_compliance |
+| link_evidence | get_documentation | export_documentation |
+| compare_frameworks | get_guidance | get_framework_gap |
+| get_assessment_questions |
+
+### 2. CONTRIBUTING.md
+
+**Location**: `/Users/legend/projects/ComplianceOracle/CONTRIBUTING.md`
+**Lines**: 153
+
+**Sections included**:
+- Development setup (uv sync, fetch, index)
+- Mandatory verification command sequence:
+  1. `ruff check --fix`
+  2. `mypy src/`
+  3. `pytest`
+- PR guidelines (title format, description requirements)
+- Commit guidelines (conventional commits, atomic commits)
+- Documentation update requirements with trigger table
+- Ownership matrix (who updates what)
+- Drift prevention checklist
+
+## Verification Commands Run
+
+```bash
+# Verify files exist
+ls -la CHANGELOG.md CONTRIBUTING.md
+
+# Count sections in CHANGELOG
+grep -c "^##" CHANGELOG.md  # Expected: 4+ (changelog sections + version history + update guide)
+
+# Verify mandatory commands documented
+grep -c "ruff check" CONTRIBUTING.md  # Expected: 1+
+grep -c "mypy src/" CONTRIBUTING.md   # Expected: 1+
+grep -c "pytest" CONTRIBUTING.md      # Expected: 1+
+```
+
+## Required Sections Verification
+
+### CHANGELOG.md
+- [x] Header with project name
+- [x] Format reference (Keep a Changelog)
+- [x] Current version section (0.1.3)
+- [x] Baseline entry with tool list
+- [x] [Unreleased] section
+- [x] Version history table
+- [x] Update instructions
+
+### CONTRIBUTING.md
+- [x] Development setup section
+- [x] Verification command sequence (ruff, mypy, pytest)
+- [x] PR guidelines
+- [x] Commit guidelines
+- [x] Documentation update requirements
+- [x] Ownership matrix
+- [x] Drift prevention checklist
+
+## Governance Pack Summary
+
+**Purpose**: Prevent documentation drift by establishing clear ownership, update triggers, and verification requirements.
+
+**Key mechanisms**:
+1. CHANGELOG.md captures all user-facing changes with structured format
+2. CONTRIBUTING.md defines mandatory verification before commit
+3. Ownership matrix clarifies who updates which document
+4. Drift prevention checklist ensures consistency checks before release
+5. Update trigger table documents when to update what
+
+**Drift Prevention Rules**:
+- README tools table must match runtime tool count (13)
+- CHANGELOG must be updated with every PR that changes user-facing behavior
+- Version in pyproject.toml must match CHANGELOG version at release
+- No documented features that don't exist at runtime
