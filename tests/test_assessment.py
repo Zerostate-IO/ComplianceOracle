@@ -8,7 +8,9 @@ Tests cover:
 """
 
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
+import time
 
 import pytest
 from fastmcp import FastMCP
@@ -1455,3 +1457,701 @@ class TestLoadIntelligenceConfig:
         config = load_intelligence_config()
         assert config.model_config.get("frozen") is True
 
+
+# ==============================================================================
+# OLLAMA CLIENT TESTS
+# ==============================================================================
+
+
+class TestOllamaResult:
+    """Tests for OllamaResult model."""
+
+    def test_ok_result(self) -> None:
+        """OllamaResult with ok status has content."""
+        from compliance_oracle.assessment.llm.ollama_client import (
+            OllamaResult,
+            OllamaStatus,
+        )
+
+        result = OllamaResult(status="ok", content="Generated text", latency_ms=100)
+        assert result.status == "ok"
+        assert result.content == "Generated text"
+        assert result.error_code is None
+        assert result.latency_ms == 100
+
+    def test_error_result(self) -> None:
+        """OllamaResult with error status has error_code."""
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaResult
+
+        result = OllamaResult(
+            status="error",
+            error_code=DegradeReason.OLLAMA_UNREACHABLE,
+            latency_ms=50,
+        )
+        assert result.status == "error"
+        assert result.content is None
+        assert result.error_code == DegradeReason.OLLAMA_UNREACHABLE
+
+    def test_timeout_result(self) -> None:
+        """OllamaResult with timeout status."""
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaResult
+
+        result = OllamaResult(
+            status="timeout",
+            error_code=DegradeReason.OLLAMA_TIMEOUT,
+            latency_ms=30000,
+        )
+        assert result.status == "timeout"
+        assert result.error_code == DegradeReason.OLLAMA_TIMEOUT
+
+    def test_circuit_open_result(self) -> None:
+        """OllamaResult with circuit_open status."""
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaResult
+
+        result = OllamaResult(
+            status="circuit_open",
+            error_code=DegradeReason.CIRCUIT_OPEN,
+            latency_ms=0,
+        )
+        assert result.status == "circuit_open"
+        assert result.error_code == DegradeReason.CIRCUIT_OPEN
+
+    def test_result_with_model(self) -> None:
+        """OllamaResult preserves model name."""
+        from compliance_oracle.assessment.llm.ollama_client import OllamaResult
+
+        result = OllamaResult(
+            status="ok",
+            content="text",
+            latency_ms=100,
+            model="llama3.2",
+        )
+        assert result.model == "llama3.2"
+
+
+class TestOllamaClientInit:
+    """Tests for OllamaClient initialization."""
+
+    def test_init_with_defaults(self) -> None:
+        """OllamaClient initializes with IntelligenceConfig."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig()
+        client = OllamaClient(config)
+
+        assert client._config == config
+        assert client._consecutive_failures == 0
+        assert client._circuit_open_until is None
+
+    def test_circuit_state_initial(self) -> None:
+        """Initial circuit state is closed."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig()
+        client = OllamaClient(config)
+
+        is_open, failures, until = client.circuit_state
+        assert is_open is False
+        assert failures == 0
+        assert until is None
+
+
+class TestOllamaClientGenerate:
+    """Tests for OllamaClient.generate method."""
+
+    @pytest.mark.asyncio
+    async def test_successful_response(self, httpx_mock: Any) -> None:
+        """Successful Ollama response returns ok status with content."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig(
+            ollama_base_url="http://localhost:11434",
+            ollama_model="llama3.2",
+        )
+        client = OllamaClient(config)
+
+        # Mock successful response
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={"model": "llama3.2", "response": "Generated text", "done": True},
+            status_code=200,
+        )
+
+        result = await client.generate("Test prompt")
+
+        assert result.status == "ok"
+        assert result.content == "Generated text"
+        assert result.model == "llama3.2"
+        assert result.error_code is None
+        assert result.latency_ms >= 0
+
+    @pytest.mark.asyncio
+    async def test_timeout_handling(self, httpx_mock: Any) -> None:
+        """Timeout returns timeout status and records failure."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig(
+            timeout_budget_seconds=0.1,  # Very short timeout
+        )
+        client = OllamaClient(config)
+
+        # Mock a slow response that will timeout
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={"model": "llama3.2", "response": "text"},
+            status_code=200,
+        )
+
+        # Override httpx_mock to simulate delay
+        import asyncio
+
+        async def slow_response(request: Any) -> httpx.Response:
+            await asyncio.sleep(0.5)  # Longer than timeout
+            return httpx.Response(200, json={"response": "text"})
+
+        # Clear and add slow response
+        httpx_mock.add_callback(slow_response, url="http://localhost:11434/api/generate")
+
+        result = await client.generate("Test prompt")
+
+        assert result.status == "timeout"
+        assert result.error_code is not None
+
+    @pytest.mark.asyncio
+    async def test_connection_error(self, httpx_mock: Any) -> None:
+        """Connection error returns error status with OLLAMA_UNREACHABLE."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig()
+        client = OllamaClient(config)
+
+        # Mock connection error
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection refused"),
+            url="http://localhost:11434/api/generate",
+        )
+
+        result = await client.generate("Test prompt")
+
+        assert result.status == "error"
+        assert result.error_code == DegradeReason.OLLAMA_UNREACHABLE
+        assert result.content is None
+
+    @pytest.mark.asyncio
+    async def test_malformed_json_response(self, httpx_mock: Any) -> None:
+        """Malformed JSON returns error status with OLLAMA_MALFORMED_RESPONSE."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig()
+        client = OllamaClient(config)
+
+        # Mock malformed JSON response
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            content=b"not valid json",
+            status_code=200,
+        )
+
+        result = await client.generate("Test prompt")
+
+        assert result.status == "error"
+        assert result.error_code == DegradeReason.OLLAMA_MALFORMED_RESPONSE
+
+    @pytest.mark.asyncio
+    async def test_missing_response_field(self, httpx_mock: Any) -> None:
+        """Missing 'response' field returns OLLAMA_MALFORMED_RESPONSE."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig()
+        client = OllamaClient(config)
+
+        # Mock response without 'response' field
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={"model": "llama3.2", "done": True},  # Missing 'response'
+            status_code=200,
+        )
+
+        result = await client.generate("Test prompt")
+
+        assert result.status == "error"
+        assert result.error_code == DegradeReason.OLLAMA_MALFORMED_RESPONSE
+
+    @pytest.mark.asyncio
+    async def test_ollama_error_in_body(self, httpx_mock: Any) -> None:
+        """Error field in response body returns OLLAMA_UNREACHABLE."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig()
+        client = OllamaClient(config)
+
+        # Mock error in response body
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={"error": "model not found"},
+            status_code=200,
+        )
+
+        result = await client.generate("Test prompt")
+
+        assert result.status == "error"
+        assert result.error_code == DegradeReason.OLLAMA_UNREACHABLE
+
+    @pytest.mark.asyncio
+    async def test_http_error_status(self, httpx_mock: Any) -> None:
+        """HTTP error status returns OLLAMA_UNREACHABLE."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig()
+        client = OllamaClient(config)
+
+        # Mock HTTP error
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            status_code=500,
+            json={"error": "Internal server error"},
+        )
+
+        result = await client.generate("Test prompt")
+
+        assert result.status == "error"
+        assert result.error_code == DegradeReason.OLLAMA_UNREACHABLE
+
+
+class TestOllamaClientCircuitBreaker:
+    """Tests for OllamaClient circuit-breaker behavior."""
+
+    @pytest.mark.asyncio
+    async def test_circuit_opens_after_threshold_failures(
+        self, httpx_mock: Any
+    ) -> None:
+        """Circuit opens after consecutive failures reach threshold."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig(
+            circuit_breaker_threshold=2,
+            circuit_breaker_reset_seconds=60.0,
+        )
+        client = OllamaClient(config)
+
+        # Mock connection errors
+        for _ in range(3):
+            httpx_mock.add_exception(
+                httpx.ConnectError("Connection refused"),
+                url="http://localhost:11434/api/generate",
+            )
+
+        # First failure
+        result1 = await client.generate("Test prompt")
+        assert result1.status == "error"
+        assert client._consecutive_failures == 1
+
+        # Second failure - should open circuit
+        result2 = await client.generate("Test prompt")
+        assert result2.status == "error"
+        assert client._consecutive_failures == 2
+        assert client._circuit_open_until is not None
+
+        # Third call - circuit should be open
+        result3 = await client.generate("Test prompt")
+        assert result3.status == "circuit_open"
+        assert result3.error_code == DegradeReason.CIRCUIT_OPEN
+        assert result3.latency_ms == 0
+
+    @pytest.mark.asyncio
+    async def test_circuit_reset_after_success(self, httpx_mock: Any) -> None:
+        """Circuit resets after a successful response."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig(
+            circuit_breaker_threshold=3,
+        )
+        client = OllamaClient(config)
+
+        # Mock failure then success
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection refused"),
+            url="http://localhost:11434/api/generate",
+        )
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={"model": "llama3.2", "response": "Success", "done": True},
+            status_code=200,
+        )
+
+        # First call fails
+        await client.generate("Test prompt")
+        assert client._consecutive_failures == 1
+
+        # Second call succeeds
+        result = await client.generate("Test prompt")
+        assert result.status == "ok"
+        assert client._consecutive_failures == 0
+        assert client._circuit_open_until is None
+
+    @pytest.mark.asyncio
+    async def test_manual_circuit_reset(self) -> None:
+        """Manual reset_circuit clears circuit state."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig()
+        client = OllamaClient(config)
+
+        # Manually set circuit state
+        client._consecutive_failures = 5
+        client._circuit_open_until = 9999999.0
+
+        # Reset
+        client.reset_circuit()
+
+        assert client._consecutive_failures == 0
+        assert client._circuit_open_until is None
+
+        is_open, failures, until = client.circuit_state
+        assert is_open is False
+        assert failures == 0
+        assert until is None
+
+    @pytest.mark.asyncio
+    async def test_circuit_closes_after_reset_period(
+        self, httpx_mock: Any
+    ) -> None:
+        """Circuit auto-closes after reset period elapses."""
+        import time
+
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig(
+            circuit_breaker_threshold=1,
+            circuit_breaker_reset_seconds=0.1,  # Very short for testing
+        )
+        client = OllamaClient(config)
+
+        # Mock failure to open circuit
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection refused"),
+            url="http://localhost:11434/api/generate",
+        )
+        # Mock success after circuit reset
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={"model": "llama3.2", "response": "Success", "done": True},
+            status_code=200,
+        )
+
+        # First call opens circuit
+        await client.generate("Test prompt")
+        assert client._is_circuit_open() is True
+
+        # Wait for reset period
+        time.sleep(0.15)
+
+        # Circuit should now be closed (checked on next call)
+        is_open, _, _ = client.circuit_state
+        assert is_open is False
+
+    @pytest.mark.asyncio
+    async def test_circuit_open_no_network_call(self, httpx_mock: Any) -> None:
+        """When circuit is open, no network call is made."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+
+        config = IntelligenceConfig(
+            circuit_breaker_threshold=1,
+        )
+        client = OllamaClient(config)
+
+        # Manually open circuit
+        client._consecutive_failures = 10
+        client._circuit_open_until = time.monotonic() + 1000
+
+        # Generate should return immediately without network call
+        result = await client.generate("Test prompt")
+
+        assert result.status == "circuit_open"
+        assert result.error_code == DegradeReason.CIRCUIT_OPEN
+        # httpx_mock should have no requests
+        assert len(httpx_mock.get_requests()) == 0
+
+# ============================================================================
+# POLICY GUARD TESTS
+# ============================================================================
+
+
+class TestPolicyResult:
+    """Tests for PolicyResult model."""
+
+    def test_policy_result_creation(self) -> None:
+        """PolicyResult can be created with all fields."""
+        from compliance_oracle.assessment.policy import PolicyResult
+
+        result = PolicyResult(
+            original_text="You should implement MFA",
+            sanitized_text="it would be appropriate to implementation of MFA",
+            policy_violation=True,
+            violations=["you should", "should implement"],
+        )
+
+        assert result.original_text == "You should implement MFA"
+        assert result.policy_violation is True
+        assert len(result.violations) == 2
+
+    def test_policy_result_no_violation(self) -> None:
+        """PolicyResult with no violations."""
+        from compliance_oracle.assessment.policy import PolicyResult
+
+        result = PolicyResult(
+            original_text="MFA coverage beyond current scope may need assessment",
+            sanitized_text="MFA coverage beyond current scope may need assessment",
+            policy_violation=False,
+            violations=[],
+        )
+
+        assert result.policy_violation is False
+        assert result.violations == []
+
+
+class TestEnforceNoFixPolicy:
+    """Tests for enforce_no_fix_policy function."""
+
+    def test_allowed_gap_language_passes_unchanged(self) -> None:
+        """Allowed gap-focused language passes through unchanged."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "MFA coverage beyond current scope may need assessment"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is False
+        assert result.original_text == text
+        assert result.sanitized_text == text
+        assert result.violations == []
+
+    def test_forbidden_remediation_language_detected(self) -> None:
+        """Forbidden remediation language is detected and flagged."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "You should implement MFA for admins"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is True
+        assert len(result.violations) > 0
+        # Should catch both 'you should' and 'should implement'
+        assert any("should" in v for v in result.violations)
+
+    def test_multiple_violations_detected(self) -> None:
+        """Multiple violations in same text are all caught."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "You should implement MFA and we recommend deploying encryption"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is True
+        assert len(result.violations) >= 2
+
+    def test_sanitization_produces_gap_focused_output(self) -> None:
+        """Sanitization produces gap-focused output."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "You should implement MFA for admin accounts"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is True
+        # Sanitized text should not contain the forbidden phrases
+        assert "you should" not in result.sanitized_text.lower()
+
+    def test_empty_text_no_violation(self) -> None:
+        """Empty text returns no violation."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        result = enforce_no_fix_policy("")
+
+        assert result.policy_violation is False
+        assert result.violations == []
+
+    def test_whitespace_only_text_no_violation(self) -> None:
+        """Whitespace-only text returns no violation."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        result = enforce_no_fix_policy("   ")
+
+        assert result.policy_violation is False
+        assert result.violations == []
+
+    def test_text_with_no_violations_unchanged(self) -> None:
+        """Text with no violations passes through unchanged."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "Gap identified: no evidence of MFA enforcement for admin accounts"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is False
+        assert result.sanitized_text == text
+
+    def test_case_insensitive_detection(self) -> None:
+        """Pattern detection is case-insensitive."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        # Test various case combinations
+        texts = [
+            "YOU SHOULD IMPLEMENT MFA",
+            "You Should Implement MFA",
+            "you should implement MFA",
+        ]
+
+        for text in texts:
+            result = enforce_no_fix_policy(text)
+            assert result.policy_violation is True, f"Failed for: {text}"
+
+    def test_must_patterns_detected(self) -> None:
+        """'must' patterns are detected."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "You must deploy multi-factor authentication"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is True
+        assert any("must" in v for v in result.violations)
+
+    def test_recommend_patterns_detected(self) -> None:
+        """'recommend' patterns are detected."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "We recommend enabling encryption at rest"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is True
+        assert any("recommend" in v for v in result.violations)
+
+    def test_need_to_patterns_detected(self) -> None:
+        """'need to' patterns are detected."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "You need to configure access controls"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is True
+        assert any("need" in v for v in result.violations)
+
+    def test_fix_solution_patterns_detected(self) -> None:
+        """Fix/solution patterns are detected."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "To fix this issue, enable MFA"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is True
+        assert any("fix" in v for v in result.violations)
+
+    def test_consider_patterns_detected(self) -> None:
+        """'consider' patterns are detected."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        text = "Consider implementing a SIEM solution"
+        result = enforce_no_fix_policy(text)
+
+        assert result.policy_violation is True
+        assert any("consider" in v for v in result.violations)
+
+    def test_allowed_gap_identification_language(self) -> None:
+        """Allowed gap-identification language patterns are not flagged."""
+        from compliance_oracle.assessment.policy import enforce_no_fix_policy
+
+        # These should all pass through without violations
+        allowed_texts = [
+            "Gap identified: no evidence of MFA enforcement for admin accounts",
+            "Current configuration does not meet PR.AC-01 requirements",
+            "MFA coverage beyond current scope may need assessment",
+            "Privileged access management controls coverage is unclear",
+            "No evidence found in design document addressing Identity and Credentials",
+            "The evaluated content does not demonstrate coverage of this requirement",
+            "Encryption at rest coverage needs assessment",
+        ]
+
+        for text in allowed_texts:
+            result = enforce_no_fix_policy(text)
+            assert result.policy_violation is False, f"False positive for: {text}"
+            assert result.violations == [], f"Unexpected violations for: {text}"
+
+
+class TestSanitizeText:
+    """Tests for sanitize_text function."""
+
+    def test_sanitize_replaces_should_implement(self) -> None:
+        """'should implement' is replaced with gap-focused language."""
+        from compliance_oracle.assessment.policy import sanitize_text
+
+        text = "You should implement MFA"
+        result = sanitize_text(text, ["should implement"])
+
+        assert "should implement" not in result.lower()
+
+    def test_sanitize_replaces_we_recommend(self) -> None:
+        """'we recommend' is replaced with neutral language."""
+        from compliance_oracle.assessment.policy import sanitize_text
+
+        text = "We recommend enabling MFA"
+        result = sanitize_text(text, ["we recommend"])
+
+        assert "we recommend" not in result.lower()
+
+    def test_sanitize_preserves_allowed_language(self) -> None:
+        """Sanitization preserves allowed gap-identification language."""
+        from compliance_oracle.assessment.policy import sanitize_text
+
+        text = "Gap identified: MFA coverage may need assessment"
+        result = sanitize_text(text, [])
+
+        assert result == text

@@ -17,14 +17,13 @@ from compliance_oracle.assessment.contracts import (
     create_deterministic_metadata,
     create_hybrid_metadata,
 )
-
 from compliance_oracle.assessment.policy import (
     PolicyResult,
     enforce_no_fix_policy,
     sanitize_text,
 )
 
-    __all__ = [
+__all__ = [
     # Config
     "IntelligenceConfig",
     "IntelligenceMode",
@@ -40,15 +39,7 @@ from compliance_oracle.assessment.policy import (
     "PolicyResult",
     "enforce_no_fix_policy",
     "sanitize_text",
-]
-    "IntelligenceConfig",
-    "IntelligenceMode",
-    "load_intelligence_config",
-    # Contracts
-    "DegradeReason",
-    "IntelligenceMetadata",
-    "IntelligenceResult",
-    "create_degraded_metadata",
-    "create_deterministic_metadata",
-    "create_hybrid_metadata",
+
+# llm subpackage is available via:
+# from compliance_oracle.assessment.llm import OllamaClient, OllamaResult, OllamaStatus
 ]
