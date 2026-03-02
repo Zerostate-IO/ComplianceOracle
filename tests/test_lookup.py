@@ -34,9 +34,9 @@ class TestListFrameworks:
         ):
             register_lookup_tools(mcp)
 
-            # Get the list_frameworks tool and call it
+            # Register the tools and verify registration succeeded
             tools = await mcp.get_tools()
-            list_frameworks_tool = next((t for t in tools if t == "list_frameworks"), None)
+            assert any(t == "list_frameworks" for t in tools)
 
             # Direct function call for testing
             mock_framework_manager.list_frameworks.return_value = [sample_framework_info]
