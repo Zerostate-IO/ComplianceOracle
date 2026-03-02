@@ -428,7 +428,7 @@ async def _export(
         console.print(f"[green]Exported to {output}[/green]")
     except Exception as e:
         console.print(f"[red]Export failed: {e}[/red]")
-        raise click.exceptions.Exit(1)
+        raise click.exceptions.Exit(1) from e
 
 if __name__ == "__main__":
     main()

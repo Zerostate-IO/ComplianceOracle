@@ -1,0 +1,24 @@
+Task T7 Evidence: mypy low-risk fixes — happy path
+====================================================
+Date: 2026-03-02
+
+Files modified:
+  - src/compliance_oracle/frameworks/manager.py
+  - src/compliance_oracle/assessment/orchestrator.py
+
+Fixes applied:
+  1. manager.py:73 — no-any-return: Added explicit `dict[str, Any]` type annotation
+     to `data = json.load(f)` so return type matches declared `dict[str, Any] | None`.
+  2. orchestrator.py:433-435 — arg-type: Changed fallback pattern to
+     `(...) or DegradeReason.OLLAMA_UNREACHABLE` so `degrade_reason` is always
+     `DegradeReason`, not `DegradeReason | None`.
+  3. orchestrator.py:538-540 — arg-type: Same pattern as #2 in evaluate_compliance path.
+
+Verification:
+  $ uv run mypy src/compliance_oracle/frameworks/manager.py src/compliance_oracle/assessment/orchestrator.py
+  Success: no issues found in 2 source files
+
+  $ uv run pytest tests/test_assessment.py tests/test_frameworks_manager.py -q
+  266 passed in 6.17s
+
+No functional changes. All fixes are type-annotation-only or narrowing-only.

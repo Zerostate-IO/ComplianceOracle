@@ -70,7 +70,7 @@ class FrameworkManager:
             return None
 
         with open(filepath) as f:
-            data = json.load(f)
+            data: dict[str, Any] = json.load(f)
 
         self._cache[framework_id] = data
         return data

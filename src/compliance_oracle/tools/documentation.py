@@ -17,7 +17,7 @@ from compliance_oracle.models.schemas import (
 def register_documentation_tools(mcp: FastMCP) -> None:
     """Register documentation tools with the MCP server."""
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def document_compliance(
         control_id: str,
         status: str,
@@ -63,7 +63,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
             "message": f"Control {control_id} documented as {status}",
         }
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def link_evidence(
         control_id: str,
         evidence_type: str,
@@ -116,7 +116,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
             "message": f"Evidence linked to {control_id}",
         }
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def get_documentation(
         framework: str = "nist-csf-2.0",
         function: str | None = None,
@@ -167,7 +167,7 @@ def register_documentation_tools(mcp: FastMCP) -> None:
             "generated_at": state.updated_at.isoformat(),
         }
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def export_documentation(
         format: str = "markdown",
         framework: str = "nist-csf-2.0",

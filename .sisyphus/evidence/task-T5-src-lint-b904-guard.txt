@@ -1,0 +1,38 @@
+Task T5: B904 Exception Chaining Guard
+======================================
+
+Date: 2026-03-02
+Rule: B904 - raise-without-from-inside-except
+
+Issue Location:
+- File: src/compliance_oracle/cli.py
+- Line: 431
+- Context: Exception handler in export command
+
+Original Code:
+    except Exception as e:
+        console.print(f"[red]Export failed: {e}[/red]")
+        raise click.exceptions.Exit(1)
+
+Fixed Code:
+    except Exception as e:
+        console.print(f"[red]Export failed: {e}[/red]")
+        raise click.exceptions.Exit(1) from e
+
+Rationale:
+- B904 requires explicit exception chaining to distinguish between:
+  1. Original exception in the try block
+  2. New exception raised in the except handler
+  
+- Using `from e` preserves the original exception's traceback
+- This makes debugging easier by showing the full exception chain
+- Using `from None` would suppress the original exception (not appropriate here)
+
+Behavioral Impact:
+- None - exception chaining is purely for debugging clarity
+- Exit code remains 1 (failure)
+- User-facing error message unchanged
+
+Verification:
+- Ruff check passes
+- CLI tests pass (223 passed)

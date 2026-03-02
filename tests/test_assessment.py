@@ -1015,42 +1015,43 @@ class TestAssessControlTool:
         """assess_control works in deterministic-only mode when Ollama unavailable."""
         mcp = FastMCP("test-server")
 
-        with patch(
-            "compliance_oracle.tools.assessment.FrameworkManager",
-            return_value=mock_framework_manager,
-        ):
-            # Mock OllamaClient to simulate unavailability
-            with patch(
+        with (
+            patch(
+                "compliance_oracle.tools.assessment.FrameworkManager",
+                return_value=mock_framework_manager,
+            ),
+            patch(
                 "compliance_oracle.tools.assessment.OllamaClient"
-            ) as mock_client_class:
-                mock_client = MagicMock()
-                mock_client.generate = AsyncMock(
-                    return_value=MagicMock(
-                        status="error",
-                        content=None,
-                        error_code="ollama_unreachable",
-                    )
+            ) as mock_client_class,
+        ):
+            mock_client = MagicMock()
+            mock_client.generate = AsyncMock(
+                return_value=MagicMock(
+                    status="error",
+                    content=None,
+                    error_code="ollama_unreachable",
                 )
-                mock_client_class.return_value = mock_client
+            )
+            mock_client_class.return_value = mock_client
 
-                register_assessment_tools(mcp)
+            register_assessment_tools(mcp)
 
-                tool = await mcp.get_tool("assess_control")
-                result = await tool.fn(
-                    control_id="PR.AC-01",
-                    framework="nist-csf-2.0",
-                    response="We use MFA and SSO for authentication",
-                    evaluate_response=True,
-                )
+            tool = await mcp.get_tool("assess_control")
+            result = await tool.fn(
+                control_id="PR.AC-01",
+                framework="nist-csf-2.0",
+                response="We use MFA and SSO for authentication",
+                evaluate_response=True,
+            )
 
-                # Verify deterministic result still returned
-                assert "control_id" in result
-                assert "maturity_level" in result
-                assert "strengths" in result
-                assert "gaps" in result
-                assert "recommendations" in result
-                # Verify metadata indicates degradation
-                assert result["llm_used"] is False
+            # Verify deterministic result still returned
+            assert "control_id" in result
+            assert "maturity_level" in result
+            assert "strengths" in result
+            assert "gaps" in result
+            assert "recommendations" in result
+            # Verify metadata indicates degradation
+            assert result["llm_used"] is False
 
     @pytest.mark.asyncio
     async def test_assess_control_control_not_found(
@@ -1104,7 +1105,7 @@ class TestInterviewControlTool:
             # Patch ComplianceStateManager inside the tool function
             with patch(
                 "compliance_oracle.documentation.state.ComplianceStateManager"
-            ) as mock_state_mgr_class:
+            ):
                 result = await tool.fn(
                     control_id="PR.AC-01",
                     mode="start",
@@ -1293,46 +1294,47 @@ class TestInterviewControlTool:
         mock_state_manager = MagicMock()
         mock_state_manager.document_control = AsyncMock()
 
-        with patch(
-            "compliance_oracle.tools.assessment.FrameworkManager",
-            return_value=mock_framework_manager,
-        ):
-            # Mock OllamaClient to simulate unavailability
-            with patch(
+        with (
+            patch(
+                "compliance_oracle.tools.assessment.FrameworkManager",
+                return_value=mock_framework_manager,
+            ),
+            patch(
                 "compliance_oracle.tools.assessment.OllamaClient"
-            ) as mock_client_class:
-                mock_client = MagicMock()
-                mock_client.generate = AsyncMock(
-                    return_value=MagicMock(
-                        status="error",
-                        content=None,
-                        error_code="ollama_unreachable",
-                    )
+            ) as mock_client_class,
+            patch(
+                "compliance_oracle.documentation.state.ComplianceStateManager",
+                return_value=mock_state_manager,
+            ),
+        ):
+            mock_client = MagicMock()
+            mock_client.generate = AsyncMock(
+                return_value=MagicMock(
+                    status="error",
+                    content=None,
+                    error_code="ollama_unreachable",
                 )
-                mock_client_class.return_value = mock_client
+            )
+            mock_client_class.return_value = mock_client
 
-                register_assessment_tools(mcp)
+            register_assessment_tools(mcp)
 
-                tool = await mcp.get_tool("interview_control")
+            tool = await mcp.get_tool("interview_control")
 
-                with patch(
-                    "compliance_oracle.documentation.state.ComplianceStateManager",
-                    return_value=mock_state_manager,
-                ):
-                    result = await tool.fn(
-                        control_id="PR.AC-01",
-                        mode="submit",
-                        framework="nist-csf-2.0",
-                        answers={"q1": "We use MFA for all users"},
-                        project_path=str(tmp_path),
-                    )
+            result = await tool.fn(
+                control_id="PR.AC-01",
+                mode="submit",
+                framework="nist-csf-2.0",
+                answers={"q1": "We use MFA for all users"},
+                project_path=str(tmp_path),
+            )
 
-                    # Verify deterministic result still returned
-                    assert result["status"] == "documented"
-                    assert "control_id" in result
-                    # Verify metadata indicates deterministic/degraded
-                    assert result["llm_used"] is False
-                    assert result["degrade_reason"] is not None
+            # Verify deterministic result still returned
+            assert result["status"] == "documented"
+            assert "control_id" in result
+            # Verify metadata indicates deterministic/degraded
+            assert result["llm_used"] is False
+            assert result["degrade_reason"] is not None
 
 
 class TestGetAssessmentQuestionsScopes:

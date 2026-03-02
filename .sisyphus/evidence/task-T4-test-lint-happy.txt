@@ -1,0 +1,33 @@
+Task T4: Test Lint Happy Path Evidence
+========================================
+Date: 2026-03-02
+
+SUMMARY
+-------
+Fixed all remaining manual Ruff errors in test_documentation.py and test_assessment.py.
+
+CHANGES MADE
+------------
+
+1. test_documentation.py (E402 - import not at top of file):
+   - Moved `import json` from line 1143 to top of file
+   - Moved `from compliance_oracle.assessment.contracts import (...)` from lines 1145-1149 to top
+   - Removed duplicate imports that were previously at lines 23-35
+
+2. test_assessment.py (SIM117 - multiple with-statements):
+   - Line 1018: Combined nested `with patch(FrameworkManager)` and `with patch(OllamaClient)` 
+     into a single `with (...)` statement using Python 3.10+ parenthesized context managers
+   - Line 1296: Combined three nested `with` statements (FrameworkManager, OllamaClient, 
+     ComplianceStateManager) into a single `with (...)` statement
+
+3. test_assessment.py (F841 - unused variable):
+   - Line 1107: Removed `as mock_state_mgr_class` from the patch statement since 
+     the variable was never used in the test
+
+VERIFICATION
+------------
+$ uv run ruff check tests/test_documentation.py tests/test_assessment.py --output-format=concise
+All checks passed!
+
+$ uv run pytest tests/test_documentation.py tests/test_assessment.py -q
+249 passed in 6.38s

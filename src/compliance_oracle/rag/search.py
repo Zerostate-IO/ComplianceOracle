@@ -1,10 +1,17 @@
 """RAG-based semantic search for compliance controls using ChromaDB."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import chromadb
+from chromadb.api import ClientAPI
+from chromadb.api.types import Where
 from chromadb.config import Settings
+
+if TYPE_CHECKING:
+    from chromadb import Collection
 
 from compliance_oracle.frameworks.manager import FrameworkManager
 from compliance_oracle.models.schemas import Control, SearchResult
@@ -37,10 +44,10 @@ class ControlSearcher:
             self._db_path = db_path
 
         self._framework_manager = framework_manager or FrameworkManager()
-        self._client: chromadb.PersistentClient | None = None
-        self._collection: chromadb.Collection | None = None
+        self._client: ClientAPI | None = None
+        self._collection: Collection | None = None
 
-    def _get_client(self) -> chromadb.PersistentClient:
+    def _get_client(self) -> ClientAPI:
         """Get or create ChromaDB client."""
         if self._client is None:
             self._db_path.mkdir(parents=True, exist_ok=True)
@@ -50,7 +57,7 @@ class ControlSearcher:
             )
         return self._client
 
-    def _get_collection(self) -> chromadb.Collection:
+    def _get_collection(self) -> Collection:
         """Get or create the controls collection."""
         if self._collection is None:
             client = self._get_client()
@@ -79,7 +86,7 @@ class ControlSearcher:
         # Prepare documents for indexing
         ids = []
         documents = []
-        metadatas = []
+        metadatas: list[dict[str, Any]] = []
 
         for ctrl in controls:
             doc_id = f"{framework_id}:{ctrl.id}"
@@ -106,7 +113,7 @@ class ControlSearcher:
         collection.upsert(
             ids=ids,
             documents=documents,
-            metadatas=metadatas,
+            metadatas=cast(Any, metadatas),
         )
 
         return len(controls)
@@ -154,9 +161,9 @@ class ControlSearcher:
         collection = self._get_collection()
 
         # Build where clause for filtering
-        where_clause = None
+        where_clause: Where | None = None
         if framework_id:
-            where_clause = {"framework_id": framework_id}
+            where_clause = cast(Where, {"framework_id": framework_id})
 
         # Query the collection
         results = collection.query(
@@ -184,10 +191,10 @@ class ControlSearcher:
 
                 search_results.append(
                     SearchResult(
-                        control_id=metadata.get("control_id", ""),
-                        control_name=metadata.get("control_name", ""),
-                        description=metadata.get("description", ""),
-                        framework_id=metadata.get("framework_id", ""),
+                        control_id=cast(str, metadata.get("control_id", "")),
+                        control_name=cast(str, metadata.get("control_name", "")),
+                        description=cast(str, metadata.get("description", "")),
+                        framework_id=cast(str, metadata.get("framework_id", "")),
                         relevance_score=relevance_score,
                     )
                 )
@@ -298,7 +305,7 @@ class ControlSearcher:
             )
             return len(results["ids"]) if results["ids"] else 0
         else:
-            return cast(int, collection.count())
+            return collection.count()
 
     async def clear_index(self, framework_id: str | None = None) -> int:
         """Clear indexed controls.
@@ -323,7 +330,7 @@ class ControlSearcher:
             return 0
         else:
             # Clear entire collection
-            count = cast(int, collection.count())
+            count = collection.count()
             client = self._get_client()
             client.delete_collection(self.COLLECTION_NAME)
             self._collection = None

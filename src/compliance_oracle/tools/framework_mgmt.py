@@ -15,7 +15,7 @@ from compliance_oracle.rag.search import ControlSearcher
 def register_framework_tools(mcp: FastMCP) -> None:
     """Register framework management tools with the MCP server."""
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def compare_frameworks(
         control_id: str,
         source_framework: str = "nist-csf-2.0",
@@ -49,7 +49,7 @@ def register_framework_tools(mcp: FastMCP) -> None:
             "mappings": mappings,
         }
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def get_framework_gap(
         current_framework: str,
         target_framework: str,
@@ -84,7 +84,7 @@ def register_framework_tools(mcp: FastMCP) -> None:
             project_path=project_path,
         )
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def get_guidance(
         control_id: str,
         framework: str = "nist-csf-2.0",
@@ -134,7 +134,7 @@ def register_framework_tools(mcp: FastMCP) -> None:
 
         return guidance
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def manage_framework(
         action: str,
         framework: str | None = None,

@@ -11,7 +11,7 @@ from compliance_oracle.rag.search import ControlSearcher
 def register_search_tools(mcp: FastMCP) -> None:
     """Register search tools with the MCP server."""
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def search_controls(
         query: str,
         framework: str | None = None,
@@ -49,7 +49,7 @@ def register_search_tools(mcp: FastMCP) -> None:
             total_results=len(results),
         )
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def get_control_context(
         control_id: str,
         framework: str = "nist-csf-2.0",

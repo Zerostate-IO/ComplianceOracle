@@ -252,10 +252,7 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Determine which frameworks to fetch
-    if args.framework == "all":
-        frameworks = ["nist-csf-2.0", "nist-800-53-r5"]
-    else:
-        frameworks = [args.framework]
+    frameworks = ["nist-csf-2.0", "nist-800-53-r5"] if args.framework == "all" else [args.framework]
 
     # Fetch each framework
     success = True

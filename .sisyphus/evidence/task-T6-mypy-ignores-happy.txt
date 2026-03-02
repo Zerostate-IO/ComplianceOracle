@@ -1,0 +1,40 @@
+# Task T6: Remove Stale mypy ignore Comments - Happy Path Evidence
+
+## Date: 2026-03-02
+
+## Summary
+Removed 16 stale `# type: ignore[untyped-decorator]` comments from tool registration decorators.
+
+## Files Modified
+1. src/compliance_oracle/tools/lookup.py (lines 16, 27, 57)
+2. src/compliance_oracle/tools/framework_mgmt.py (lines 18, 52, 87, 137)
+3. src/compliance_oracle/tools/search.py (lines 14, 52)
+4. src/compliance_oracle/tools/documentation.py (lines 20, 66, 119, 170)
+5. src/compliance_oracle/tools/assessment.py (lines 905, 942, 1046)
+
+## Verification Commands
+```bash
+# Verify no unused-ignore errors
+uv run mypy src/ 2>&1 | grep -E "(unused-ignore|untyped-decorator)"
+# Expected: No matches
+
+# Verify tests pass
+uv run pytest tests/test_tool_contracts.py -q
+# Expected: 28 passed
+```
+
+## Results
+- mypy: No unused-ignore or untyped-decorator errors found
+- pytest: 28 passed in 0.68s
+
+## Change Details
+Each occurrence was changed from:
+```python
+@mcp.tool()  # type: ignore[untyped-decorator]
+```
+to:
+```python
+@mcp.tool()
+```
+
+No other code modifications were made.

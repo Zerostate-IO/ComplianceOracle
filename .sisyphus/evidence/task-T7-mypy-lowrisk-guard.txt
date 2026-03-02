@@ -1,0 +1,27 @@
+Task T7 Evidence: degrade_reason guard pattern
+===============================================
+Date: 2026-03-02
+
+Pattern used for DegradeReason | None → DegradeReason narrowing:
+
+BEFORE (both orchestrator.py:433 and :538):
+    degrade_reason = (
+        ollama_result.error_code if ollama_result else DegradeReason.OLLAMA_UNREACHABLE
+    )
+    # Type: DegradeReason | None — because error_code is Optional
+
+AFTER:
+    degrade_reason = (
+        ollama_result.error_code if ollama_result else None
+    ) or DegradeReason.OLLAMA_UNREACHABLE
+    # Type: DegradeReason — the `or` clause guarantees non-None
+
+Rationale:
+  - `ollama_result.error_code` is typed `DegradeReason | None`
+  - When ollama_result exists but error_code is None, the old code would pass None
+    to create_degraded_metadata which expects DegradeReason
+  - The `or DegradeReason.OLLAMA_UNREACHABLE` fallback covers both cases:
+    (a) ollama_result is None → None or UNREACHABLE → UNREACHABLE
+    (b) ollama_result.error_code is None → None or UNREACHABLE → UNREACHABLE
+    (c) ollama_result.error_code is set → returns that value (truthy DegradeReason)
+  - No semantic change: same default was already used, just guaranteed at type level

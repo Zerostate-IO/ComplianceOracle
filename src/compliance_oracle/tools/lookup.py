@@ -13,7 +13,7 @@ from compliance_oracle.models.schemas import (
 def register_lookup_tools(mcp: FastMCP) -> None:
     """Register lookup tools with the MCP server."""
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def list_frameworks() -> ListFrameworksResponse:
         """List all available compliance frameworks.
 
@@ -24,7 +24,7 @@ def register_lookup_tools(mcp: FastMCP) -> None:
         frameworks = await manager.list_frameworks()
         return ListFrameworksResponse(frameworks=frameworks)
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def list_controls(
         framework: str = "nist-csf-2.0",
         function: str | None = None,
@@ -54,7 +54,7 @@ def register_lookup_tools(mcp: FastMCP) -> None:
             total_count=len(controls),
         )
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def get_control_details(
         control_id: str,
         framework: str = "nist-csf-2.0",

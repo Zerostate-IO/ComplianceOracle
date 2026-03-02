@@ -1,0 +1,24 @@
+Task T5: Source Lint Fixes Complete
+===================================
+
+Date: 2026-03-02
+Status: COMPLETE
+
+Fixed Issues:
+1. B904 (raise-without-from-inside-except) in cli.py:431
+   - Added `from e` to exception chain in export command
+   
+2. F841 (unused-variable) in orchestrator.py:225
+   - Removed unused `category` variable and its import
+   
+3. SIM108 (ternary-operator) in fetch_nist_data.py:255
+   - Converted if-else block to ternary operator
+
+Verification:
+- `uv run ruff check src/ scripts/` → All checks passed!
+- `uv run pytest tests/test_cli.py tests/test_assessment.py -q` → 223 passed
+
+Files Modified:
+- src/compliance_oracle/cli.py
+- src/compliance_oracle/assessment/orchestrator.py
+- scripts/fetch_nist_data.py

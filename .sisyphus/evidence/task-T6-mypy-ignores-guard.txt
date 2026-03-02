@@ -1,0 +1,35 @@
+# Task T6: Guard Rail Evidence
+
+## Date: 2026-03-02
+
+## Guard Checks Passed
+
+### 1. No non-stale ignores removed
+All removed comments were confirmed stale via mypy's `unused-ignore` diagnostic.
+No other type ignore comments were touched.
+
+### 2. Decorator behavior unchanged
+Only comment text was removed. The `@mcp.tool()` decorator itself was preserved.
+
+### 3. No other code modified
+Only the specific lines with stale ignores were edited.
+No imports, function signatures, or logic were changed.
+
+## Pre-change Baseline
+From T2 baseline, these files had stale decorator ignores:
+- src/compliance_oracle/tools/lookup.py:16
+- src/compliance_oracle/tools/documentation.py:20
+- src/compliance_oracle/tools/assessment.py:905
+- src/compliance_oracle/tools/framework_mgmt.py:18
+
+Additional locations found during this task:
+- lookup.py:27, 57
+- documentation.py:66, 119, 170
+- assessment.py:942, 1046
+- framework_mgmt.py:52, 87, 137
+- search.py:14, 52
+
+## Post-change Verification
+- mypy reports no unused-ignore errors for decorator sites
+- All 28 tool contract tests pass
+- Tool registration still loads correctly

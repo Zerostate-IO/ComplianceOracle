@@ -210,7 +210,6 @@ class IntelligenceOrchestrator:
         from compliance_oracle.tools.assessment import (
             _assess_maturity_level,
             _generate_recommendations,
-            _get_category_from_control_id,
             _identify_gaps,
             _identify_strengths,
         )
@@ -222,7 +221,7 @@ class IntelligenceOrchestrator:
         recommendations = _generate_recommendations(gaps, maturity)
 
         # Extract control name from control_id (simplified)
-        category = _get_category_from_control_id(control_id)
+        # Extract control name from control_id (simplified)
         control_name = f"Control {control_id}"
 
         return {
@@ -432,8 +431,8 @@ Context: <any additional relevant context>"""
         # Step 4: Handle LLM failure/degradation
         if ollama_result is None or ollama_result.status != "ok":
             degrade_reason = (
-                ollama_result.error_code if ollama_result else DegradeReason.OLLAMA_UNREACHABLE
-            )
+                ollama_result.error_code if ollama_result else None
+            ) or DegradeReason.OLLAMA_UNREACHABLE
             return OrchestratorResult(
                 **deterministic_result,
                 metadata=create_degraded_metadata(
@@ -537,8 +536,8 @@ Summary:"""
         # Step 5: Handle LLM failure/degradation
         if ollama_result is None or ollama_result.status != "ok":
             degrade_reason = (
-                ollama_result.error_code if ollama_result else DegradeReason.OLLAMA_UNREACHABLE
-            )
+                ollama_result.error_code if ollama_result else None
+            ) or DegradeReason.OLLAMA_UNREACHABLE
             return EvaluationOrchestratorResult(
                 **deterministic_result,
                 metadata=create_degraded_metadata(

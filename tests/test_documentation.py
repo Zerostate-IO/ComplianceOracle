@@ -1,10 +1,16 @@
 """Tests for documentation tools (document_compliance, link_evidence, get_documentation, export_documentation)."""
 
+import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from compliance_oracle.assessment.contracts import (
+    DegradeReason,
+    IntelligenceMetadata,
+    IntelligenceMode,
+)
 from compliance_oracle.models.schemas import (
     ComplianceState,
     ComplianceSummary,
@@ -17,6 +23,7 @@ from compliance_oracle.models.schemas import (
 
 class TestDocumentCompliance:
     """Tests for document_compliance tool."""
+
 
     @pytest.mark.asyncio
     async def test_document_compliance_happy_path(
@@ -1139,15 +1146,6 @@ class TestGetDocumentationWithMetadata:
             assert result["controls"][0].get("intelligence_metadata") is None
 
 
-# Add import for patch at module level if not already present
-import json
-
-from compliance_oracle.assessment.contracts import (
-    DegradeReason,
-    IntelligenceMetadata,
-    IntelligenceMode,
-)
-from compliance_oracle.models.schemas import ControlDocumentation
 
 
 class TestDocumentComplianceToolWithMetadata:

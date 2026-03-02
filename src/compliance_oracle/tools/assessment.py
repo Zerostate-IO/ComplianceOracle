@@ -902,7 +902,7 @@ async def _interview_skip(
 def register_assessment_tools(mcp: FastMCP) -> None:
     """Register assessment/interview tools with the MCP server."""
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def get_assessment_questions(
         framework: str = "nist-csf-2.0",
         function: str | None = None,
@@ -939,7 +939,7 @@ def register_assessment_tools(mcp: FastMCP) -> None:
             control_id=control_id,
         )
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def assess_control(
         control_id: str,
         framework: str = "nist-csf-2.0",
@@ -1043,7 +1043,7 @@ def register_assessment_tools(mcp: FastMCP) -> None:
                 control_id=control_id,
             )
 
-    @mcp.tool()  # type: ignore[untyped-decorator]
+    @mcp.tool()
     async def interview_control(
         control_id: str,
         mode: str,
