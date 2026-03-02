@@ -317,10 +317,10 @@ Wave 3 (mypy R-002 + final gate): T6, T7, T8, T9
   **Commit**: YES | Message: `chore(stabilization): finalize quality gates and handoff state` | Files: `.sisyphus/plans/closeout-and-stabilization.md`, `.sisyphus/boulder.json`, `.sisyphus/evidence/*`
 
 ## Final Verification Wave (4 parallel agents, ALL must APPROVE)
-- [ ] F1. Plan Compliance Audit — oracle
-- [ ] F2. Code Quality Review — unspecified-high
-- [ ] F3. Real Manual QA — unspecified-high
-- [ ] F4. Scope Fidelity Check — deep
+- [x] F1. Plan Compliance Audit — oracle
+- [x] F2. Code Quality Review — unspecified-high
+- [x] F3. Real Manual QA — unspecified-high
+- [x] F4. Scope Fidelity Check — deep
 
 ## Commit Strategy
 - Keep Ruff autofix commit isolated from manual-lint commits.
