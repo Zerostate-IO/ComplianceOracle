@@ -16,7 +16,7 @@ Design principles:
 from __future__ import annotations
 
 import time
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -29,7 +29,7 @@ from compliance_oracle.assessment.contracts import (
     create_hybrid_metadata,
 )
 from compliance_oracle.assessment.llm.ollama_client import OllamaClient, OllamaResult
-from compliance_oracle.assessment.policy import PolicyResult, enforce_no_fix_policy
+from compliance_oracle.assessment.policy import enforce_no_fix_policy
 
 
 class OrchestratorResult(BaseModel):
