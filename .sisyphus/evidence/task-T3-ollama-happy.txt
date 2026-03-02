@@ -1,0 +1,21 @@
+# T3: Ollama Client - Healthy Response Path
+
+## Test Execution
+```bash
+uv run pytest tests/test_assessment.py::TestOllamaClientGenerate::test_successful_response -v
+```
+
+## Result
+```
+tests/test_assessment.py::TestOllamaClientGenerate::test_successful_response PASSED
+```
+
+## Test Code Summary
+- Mocks Ollama 200 JSON payload with response text and done=true
+- Client returns parsed payload with status='ok'
+- Preserves raw model name (llama3.2)
+
+## Key Implementation Details
+- `OllamaResult` Pydantic model with status, content, error_code, latency_ms, model fields
+- `OllamaClient.generate()` uses httpx.AsyncClient for async HTTP requests
+- Response parsing extracts 'response' field from Ollama API JSON

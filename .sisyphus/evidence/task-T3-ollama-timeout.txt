@@ -1,0 +1,29 @@
+# T3: Ollama Client - Timeout/Degrade Failure Path
+
+## Test Execution
+```bash
+uv run pytest tests/test_assessment.py::TestOllamaClientGenerate::test_timeout_handling -v
+uv run pytest tests/test_assessment.py::TestOllamaClientCircuitBreaker::test_circuit_opens_after_threshold_failures -v
+```
+
+## Results
+```
+tests/test_assessment.py::TestOllamaClientGenerate::test_timeout_handling PASSED
+tests/test_assessment.py::TestOllamaClientCircuitBreaker::test_circuit_opens_after_threshold_failures PASSED
+```
+
+## Test Code Summary
+- Timeout test: Simulates slow response (1.5s sleep) with 1s timeout budget
+- Circuit breaker test: Repeated transport errors trigger circuit open
+
+## Key Implementation Details
+- Uses `asyncio.timeout()` for strict timeout enforcement
+- Circuit-breaker tracks `_consecutive_failures` and `_circuit_open_until`
+- Circuit opens after `circuit_breaker_threshold` consecutive failures
+- Circuit auto-resets after `circuit_breaker_reset_seconds` elapsed
+- Returns structured `OllamaResult` with error_code mapping to `DegradeReason`:
+  - `TimeoutError` -> `OLLAMA_TIMEOUT`
+  - `httpx.ConnectError` -> `OLLAMA_UNREACHABLE`
+  - Malformed JSON -> `OLLAMA_MALFORMED_RESPONSE`
+  - Circuit open -> `CIRCUIT_OPEN`
+- No uncaught exceptions escape from `generate()` method

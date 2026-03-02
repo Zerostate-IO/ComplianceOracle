@@ -1603,26 +1603,18 @@ class TestOllamaClientGenerate:
         from compliance_oracle.assessment.llm.ollama_client import OllamaClient
 
         config = IntelligenceConfig(
-            timeout_budget_seconds=0.1,  # Very short timeout
+            timeout_budget_seconds=1.0,  # Minimum allowed
         )
         client = OllamaClient(config)
-
-        # Mock a slow response that will timeout
-        httpx_mock.add_response(
-            url="http://localhost:11434/api/generate",
-            method="POST",
-            json={"model": "llama3.2", "response": "text"},
-            status_code=200,
-        )
 
         # Override httpx_mock to simulate delay
         import asyncio
 
         async def slow_response(request: Any) -> httpx.Response:
-            await asyncio.sleep(0.5)  # Longer than timeout
+            await asyncio.sleep(1.5)  # Longer than timeout
             return httpx.Response(200, json={"response": "text"})
 
-        # Clear and add slow response
+        # Add slow response callback
         httpx_mock.add_callback(slow_response, url="http://localhost:11434/api/generate")
 
         result = await client.generate("Test prompt")
@@ -1775,8 +1767,8 @@ class TestOllamaClientCircuitBreaker:
         )
         client = OllamaClient(config)
 
-        # Mock connection errors
-        for _ in range(3):
+        # Mock connection errors (only 2 needed - third call won't reach network)
+        for _ in range(2):
             httpx_mock.add_exception(
                 httpx.ConnectError("Connection refused"),
                 url="http://localhost:11434/api/generate",
@@ -1793,7 +1785,7 @@ class TestOllamaClientCircuitBreaker:
         assert client._consecutive_failures == 2
         assert client._circuit_open_until is not None
 
-        # Third call - circuit should be open
+        # Third call - circuit should be open (no network call)
         result3 = await client.generate("Test prompt")
         assert result3.status == "circuit_open"
         assert result3.error_code == DegradeReason.CIRCUIT_OPEN
@@ -1872,7 +1864,7 @@ class TestOllamaClientCircuitBreaker:
 
         config = IntelligenceConfig(
             circuit_breaker_threshold=1,
-            circuit_breaker_reset_seconds=0.1,  # Very short for testing
+            circuit_breaker_reset_seconds=10.0,  # Minimum allowed
         )
         client = OllamaClient(config)
 
@@ -1881,24 +1873,16 @@ class TestOllamaClientCircuitBreaker:
             httpx.ConnectError("Connection refused"),
             url="http://localhost:11434/api/generate",
         )
-        # Mock success after circuit reset
-        httpx_mock.add_response(
-            url="http://localhost:11434/api/generate",
-            method="POST",
-            json={"model": "llama3.2", "response": "Success", "done": True},
-            status_code=200,
-        )
 
         # First call opens circuit
         await client.generate("Test prompt")
         assert client._is_circuit_open() is True
 
-        # Wait for reset period
-        time.sleep(0.15)
+        # Manually advance the circuit_open_until time to simulate elapsed period
+        client._circuit_open_until = time.monotonic() - 1  # Set in the past
 
-        # Circuit should now be closed (checked on next call)
-        is_open, _, _ = client.circuit_state
-        assert is_open is False
+        # Circuit should now be closed (checked via _is_circuit_open)
+        assert client._is_circuit_open() is False
 
     @pytest.mark.asyncio
     async def test_circuit_open_no_network_call(self, httpx_mock: Any) -> None:
