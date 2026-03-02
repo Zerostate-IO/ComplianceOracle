@@ -1,13 +1,13 @@
 """Pydantic schemas for compliance data structures."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-
-class FrameworkStatus(str, Enum):
+from compliance_oracle.assessment.contracts import IntelligenceMetadata
+class FrameworkStatus(StrEnum):
     """Status of a framework in the system."""
 
     ACTIVE = "active"
@@ -15,7 +15,7 @@ class FrameworkStatus(str, Enum):
     DEPRECATED = "deprecated"
 
 
-class ControlStatus(str, Enum):
+class ControlStatus(StrEnum):
     """Implementation status for a control."""
 
     IMPLEMENTED = "implemented"
@@ -25,7 +25,7 @@ class ControlStatus(str, Enum):
     NOT_ADDRESSED = "not_addressed"
 
 
-class ControlRelationship(str, Enum):
+class ControlRelationship(StrEnum):
     """Type of relationship between mapped controls in different frameworks."""
 
     EQUIVALENT = "equivalent"
@@ -34,7 +34,7 @@ class ControlRelationship(str, Enum):
     RELATED = "related"
 
 
-class EvidenceType(str, Enum):
+class EvidenceType(StrEnum):
     """Types of evidence that can be linked."""
 
     CONFIG = "config"
@@ -45,7 +45,7 @@ class EvidenceType(str, Enum):
     OTHER = "other"
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     """Severity levels for findings."""
 
     CRITICAL = "critical"
@@ -201,7 +201,7 @@ class ComplianceSummary(BaseModel):
 # --- Gap Analysis Models ---
 
 
-class AssessmentAnswerType(str, Enum):
+class AssessmentAnswerType(StrEnum):
     """Type of answer expected for an assessment question."""
 
     YES_NO = "yes_no"
@@ -285,3 +285,131 @@ class ListControlsResponse(BaseModel):
     category: str | None = Field(default=None)
     controls: list[Control]
     total_count: int
+
+
+
+# --- Evaluation Models ---
+
+
+class ContentType(StrEnum):
+    """Types of content that can be evaluated."""
+
+    DESIGN_DOC = "design_doc"
+    CODE = "code"
+    ARCHITECTURE = "architecture"
+
+
+class ComplianceFinding(BaseModel):
+    """A single compliance finding from evaluation."""
+
+    control_id: str = Field(description="Control identifier (e.g., 'PR.AC-01')")
+    control_name: str = Field(description="Control name")
+    function: str = Field(description="Parent function name")
+    category: str = Field(description="Category name")
+    finding: str = Field(description="Description of the compliance gap")
+    rationale: str = Field(description="Why this is a gap based on control requirements")
+    severity: Severity = Field(description="Severity level: low, medium, high, critical")
+
+
+class EvaluationResponse(BaseModel):
+    """Response from evaluate_compliance tool."""
+
+    framework: str = Field(description="Framework used for evaluation")
+    findings_count: int = Field(description="Total number of findings")
+    findings: list[ComplianceFinding] = Field(
+        default_factory=list, description="List of compliance findings"
+    )
+    evaluated_controls: int = Field(description="Number of controls evaluated")
+    compliant_areas: list[str] = Field(
+        default_factory=list, description="Areas found to be compliant"
+    )
+    error: str | None = Field(
+        default=None, description="Error message if evaluation failed"
+    )
+
+
+class AssessmentResult(BaseModel):
+    """Result of assessing a control with a user response."""
+
+    control_id: str = Field(description="Control identifier (e.g., 'PR.AC-01')")
+    control_name: str = Field(description="Control name")
+    framework_id: str = Field(description="Framework identifier")
+    maturity_level: str = Field(
+        description="Assessed maturity level: basic, intermediate, advanced, or not_addressed"
+    )
+    strengths: list[str] = Field(
+        default_factory=list, description="Areas where implementation is strong"
+    )
+    gaps: list[str] = Field(
+        default_factory=list, description="Identified gaps in implementation"
+    )
+    recommendations: list[str] = Field(
+        default_factory=list, description="Recommendations for improvement (gap-focused, not prescriptive)"
+    )
+    metadata: IntelligenceMetadata | None = Field(
+        default=None,
+        description="Optional metadata describing the analysis mode and any degradation events",
+    )
+
+# --- Interview Models ---
+
+
+class InterviewQuestionType(StrEnum):
+    """Types of interview questions."""
+
+    TEXT = "text"
+    MULTI_SELECT = "multi_select"
+    EVIDENCE_LINK = "evidence_link"
+
+
+class InterviewQuestion(BaseModel):
+    """A single interview question for guided Q&A."""
+
+    id: str = Field(description="Question identifier (e.g., 'q1')")
+    question: str = Field(description="The question text")
+    type: InterviewQuestionType = Field(description="Type of question")
+    options: list[str] | None = Field(
+        default=None, description="Options for multi_select questions"
+    )
+    examples: list[str] | None = Field(
+        default=None, description="Example answers for text questions"
+    )
+
+
+class MaturityIndicators(BaseModel):
+    """Maturity level descriptions for a control."""
+
+    basic: str = Field(description="Basic maturity level description")
+    intermediate: str = Field(description="Intermediate maturity level description")
+    advanced: str = Field(description="Advanced maturity level description")
+
+
+class InterviewStartResponse(BaseModel):
+    """Response from interview_control in start mode."""
+
+    control_id: str
+    control_name: str
+    description: str
+    questions: list[InterviewQuestion]
+    maturity_indicators: MaturityIndicators
+
+
+class InterviewSubmitResponse(BaseModel):
+    """Response from interview_control in submit mode."""
+
+    control_id: str
+    status: str = Field(description="Status after submission: 'documented'")
+    recorded: dict[str, Any] = Field(description="Recorded implementation details")
+    evidence_linked: int = Field(description="Number of evidence items linked")
+    assessed_maturity: str = Field(description="Assessed maturity level")
+    follow_up_recommendations: list[str] = Field(
+        default_factory=list, description="Recommendations for improvement"
+    )
+
+
+class InterviewSkipResponse(BaseModel):
+    """Response from interview_control in skip mode."""
+
+    control_id: str
+    status: str = Field(description="Status after skip: 'not_applicable'")
+    message: str
