@@ -1,12 +1,14 @@
 """Pydantic schemas for compliance data structures."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 from compliance_oracle.assessment.contracts import IntelligenceMetadata
+
+
 class FrameworkStatus(StrEnum):
     """Status of a framework in the system."""
 
@@ -170,16 +172,21 @@ class ControlDocumentation(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
     owner: str | None = Field(default=None)
     notes: str | None = Field(default=None)
-    last_updated: datetime = Field(default_factory=datetime.utcnow)
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    # Optional metadata from hybrid intelligence analysis
+    intelligence_metadata: IntelligenceMetadata | None = Field(
+        default=None,
+        description="Optional metadata describing the analysis mode and any degradation events",
+    )
 
 class ComplianceState(BaseModel):
     """Full compliance state for a project."""
 
     version: str = Field(default="1.0")
     project_name: str | None = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     controls: dict[str, ControlDocumentation] = Field(
         default_factory=dict, description="Keyed by 'framework_id:control_id'"
     )
@@ -326,7 +333,14 @@ class EvaluationResponse(BaseModel):
     error: str | None = Field(
         default=None, description="Error message if evaluation failed"
     )
-
+    llm_summary: str | None = Field(
+        default=None,
+        description="LLM-generated summary of findings (when hybrid mode is available)",
+    )
+    metadata: IntelligenceMetadata | None = Field(
+        default=None,
+        description="Optional metadata describing the analysis mode and any degradation events",
+    )
 
 class AssessmentResult(BaseModel):
     """Result of assessing a control with a user response."""

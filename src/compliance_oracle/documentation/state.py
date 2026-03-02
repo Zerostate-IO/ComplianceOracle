@@ -1,7 +1,7 @@
 """Compliance state manager for persisting documentation state."""
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -66,7 +66,7 @@ class ComplianceStateManager:
             return
 
         self._ensure_state_dir()
-        self._state.updated_at = datetime.utcnow()
+        self._state.updated_at = datetime.now(timezone.utc)
 
         with open(self._state_file, "w") as f:
             json.dump(self._state.model_dump(mode="json"), f, indent=2, default=str)
@@ -95,7 +95,7 @@ class ComplianceStateManager:
             existing = state.controls[key]
             doc.evidence = existing.evidence
 
-        doc.last_updated = datetime.utcnow()
+        doc.last_updated = datetime.now(timezone.utc)
         state.controls[key] = doc
 
         await self._save_state()
@@ -126,7 +126,7 @@ class ComplianceStateManager:
 
         doc = state.controls[key]
         doc.evidence.append(evidence)
-        doc.last_updated = datetime.utcnow()
+        doc.last_updated = datetime.now(timezone.utc)
 
         await self._save_state()
 
@@ -241,7 +241,7 @@ class ComplianceStateManager:
     ) -> str:
         """Export as JSON."""
         export_data: dict[str, Any] = {
-            "export_date": datetime.utcnow().isoformat(),
+            "export_date": datetime.now(timezone.utc).isoformat(),
             "framework_id": framework_id,
             "summary": summary.model_dump() if summary else None,
             "controls": [],
@@ -253,8 +253,10 @@ class ComplianceStateManager:
                 control_data = doc.model_dump(mode="json")
                 if not include_evidence:
                     control_data.pop("evidence", None)
+                # Only include intelligence_metadata when present (backward compat)
+                if control_data.get("intelligence_metadata") is None:
+                    control_data.pop("intelligence_metadata", None)
                 export_data["controls"].append(control_data)
-
         if include_gaps:
             export_data["gaps"] = await self._get_gaps(framework_id, state)
 
@@ -272,7 +274,7 @@ class ComplianceStateManager:
         lines = [
             f"# Compliance Documentation: {framework_id}",
             "",
-            f"*Generated: {datetime.utcnow().isoformat()}*",
+            f"*Generated: {datetime.now(timezone.utc).isoformat()}*",
             "",
         ]
 
@@ -359,6 +361,25 @@ class ComplianceStateManager:
                             lines.append(
                                 f"- [{ev.type.value}] `{ev.path}`{line_info}: {ev.description}"
                             )
+
+                    # Include intelligence metadata section when present
+                    if doc.intelligence_metadata is not None:
+                        meta = doc.intelligence_metadata
+                        lines.extend(
+                            [
+                                "",
+                                "**Analysis Metadata**:",
+                                "",
+                            ]
+                        )
+                        lines.append(f"- Mode: {meta.analysis_mode.value}")
+                        lines.append(f"- LLM Used: {meta.llm_used}")
+                        if meta.degrade_reason is not None:
+                            lines.append(f"- Degrade Reason: {meta.degrade_reason.value}")
+                        if meta.policy_violations:
+                            lines.append(f"- Policy Violations: {', '.join(meta.policy_violations)}")
+                        if meta.latency_ms is not None:
+                            lines.append(f"- Latency: {meta.latency_ms}ms")
 
                     lines.append("")
 
