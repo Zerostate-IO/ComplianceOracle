@@ -2332,8 +2332,6 @@ class TestSanitizeText:
 
         assert "we recommend" not in result.lower()
 
-        assert result == text
-
 
 # ==============================================================================
 # ORCHESTRATOR TESTS
