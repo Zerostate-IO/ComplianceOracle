@@ -17,6 +17,11 @@ from compliance_oracle.assessment.contracts import (
     create_deterministic_metadata,
     create_hybrid_metadata,
 )
+from compliance_oracle.assessment.orchestrator import (
+    EvaluationOrchestratorResult,
+    IntelligenceOrchestrator,
+    OrchestratorResult,
+)
 from compliance_oracle.assessment.policy import (
     PolicyResult,
     enforce_no_fix_policy,
@@ -35,11 +40,15 @@ __all__ = [
     "create_degraded_metadata",
     "create_deterministic_metadata",
     "create_hybrid_metadata",
+    # Orchestrator
+    "EvaluationOrchestratorResult",
+    "IntelligenceOrchestrator",
+    "OrchestratorResult",
     # Policy
     "PolicyResult",
     "enforce_no_fix_policy",
     "sanitize_text",
+]
 
 # llm subpackage is available via:
 # from compliance_oracle.assessment.llm import OllamaClient, OllamaResult, OllamaStatus
-]

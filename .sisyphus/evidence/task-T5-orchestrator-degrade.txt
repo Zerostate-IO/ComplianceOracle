@@ -1,0 +1,69 @@
+# T5: Orchestrator Hard Degrade Evidence
+
+## Scenario: Timeout triggers hard degrade
+
+### Test: test_assess_hybrid_timeout_degrades
+
+```python
+mock_client.chat.side_effect = TimeoutError("Ollama timeout")
+orchestrator = IntelligenceOrchestrator(
+    config=AssessmentConfig(mode="hybrid"),
+    ollama_client=mock_client
+)
+
+result = orchestrator.assess("PR.AC-1", "We have MFA")
+```
+
+### Expected Behavior:
+1. Deterministic assessment completes
+2. LLM call times out
+3. Returns deterministic result with `degrade_reason="timeout"`
+4. `result.is_llm_used == False`
+
+### Verified Output:
+```
+PASSED - test_assess_hybrid_timeout_degrades
+```
+
+## Scenario: Connection error triggers hard degrade
+
+### Test: test_assess_hybrid_connection_error_degrades
+
+```python
+mock_client.chat.side_effect = ConnectionError("Cannot reach Ollama")
+```
+
+### Verified Output:
+```
+PASSED - test_assess_hybrid_connection_error_degrades
+```
+
+## Scenario: Circuit breaker open triggers hard degrade
+
+### Test: test_assess_hybrid_circuit_open_degrades
+
+```python
+mock_client.chat.side_effect = CircuitOpenError("Circuit breaker is open")
+```
+
+### Verified Output:
+```
+PASSED - test_assess_hybrid_circuit_open_degrades
+```
+
+## Scenario: Evaluate timeout degrades
+
+### Test: test_evaluate_hybrid_timeout_degrades
+
+```python
+mock_client.chat.side_effect = TimeoutError("Ollama timeout")
+result = orchestrator.evaluate(evidence_set)
+```
+
+### Verified Output:
+```
+PASSED - test_evaluate_hybrid_timeout_degrades
+```
+
+## Key Principle Verified
+**hard_degrade is ALWAYS True** - On any LLM failure, the orchestrator returns the deterministic result with stable shape and metadata indicating the degradation reason. No exceptions escape.

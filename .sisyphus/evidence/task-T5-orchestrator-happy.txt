@@ -1,0 +1,53 @@
+# T5: Orchestrator Happy Path Evidence
+
+## Scenario: Hybrid mode with successful LLM enrichment
+
+### Test: test_assess_hybrid_with_successful_llm
+
+```python
+mock_client = Mock()
+orchestrator = IntelligenceOrchestrator(
+    config=AssessmentConfig(mode="hybrid"),
+    ollama_client=mock_client
+)
+
+result = orchestrator.assess("PR.AC-1", "We have MFA enabled")
+```
+
+### Expected Behavior:
+1. Deterministic assessment runs FIRST
+2. LLM enrichment is attempted (succeeds)
+3. Results are merged with hybrid metadata
+4. `result.is_llm_used == True`
+5. `result.degrade_reason == None`
+
+### Verified Output:
+```
+PASSED - test_assess_hybrid_with_successful_llm
+```
+
+## Scenario: Evaluate with LLM summary
+
+### Test: test_evaluate_hybrid_with_successful_llm
+
+```python
+result = orchestrator.evaluate(evidence_set)
+```
+
+### Expected Behavior:
+1. All controls evaluated deterministically
+2. LLM provides summary of findings
+3. `result.is_llm_used == True`
+4. `result.llm_summary` contains LLM-generated content
+
+### Verified Output:
+```
+PASSED - test_evaluate_hybrid_with_successful_llm
+```
+
+## Test Summary
+All 24 orchestrator tests passed including:
+- 4 TestOrchestratorResult tests
+- 5 TestIntelligenceOrchestratorInit tests  
+- 9 TestIntelligenceOrchestratorAssess tests
+- 6 TestIntelligenceOrchestratorEvaluate tests

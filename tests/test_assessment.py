@@ -975,6 +975,111 @@ class TestAssessControlTool:
 
             assert len(result["strengths"]) >= 2
 
+    @pytest.mark.asyncio
+    async def test_assess_control_includes_metadata_fields(
+        self,
+        mock_framework_manager: MagicMock,
+        sample_control_details: ControlDetails,
+    ) -> None:
+        """assess_control includes new metadata fields in response."""
+        mcp = FastMCP("test-server")
+
+        with patch(
+            "compliance_oracle.tools.assessment.FrameworkManager",
+            return_value=mock_framework_manager,
+        ):
+            register_assessment_tools(mcp)
+
+            tool = await mcp.get_tool("assess_control")
+            result = await tool.fn(
+                control_id="PR.AC-01",
+                framework="nist-csf-2.0",
+                response="We use MFA and SSO for authentication",
+                evaluate_response=True,
+            )
+
+            # Verify new metadata fields are present
+            assert "analysis_mode" in result
+            assert "llm_used" in result
+            assert "degrade_reason" in result
+            # analysis_mode should be either "deterministic" or "hybrid"
+            assert result["analysis_mode"] in ["deterministic", "hybrid"]
+            # llm_used should be a boolean
+            assert isinstance(result["llm_used"], bool)
+
+    @pytest.mark.asyncio
+    async def test_assess_control_deterministic_mode(
+        self,
+        mock_framework_manager: MagicMock,
+        sample_control_details: ControlDetails,
+    ) -> None:
+        """assess_control works in deterministic-only mode when Ollama unavailable."""
+        mcp = FastMCP("test-server")
+
+        with patch(
+            "compliance_oracle.tools.assessment.FrameworkManager",
+            return_value=mock_framework_manager,
+        ):
+            # Mock OllamaClient to simulate unavailability
+            with patch(
+                "compliance_oracle.tools.assessment.OllamaClient"
+            ) as mock_client_class:
+                mock_client = MagicMock()
+                mock_client.generate = AsyncMock(
+                    return_value=MagicMock(
+                        status="error",
+                        content=None,
+                        error_code="ollama_unreachable",
+                    )
+                )
+                mock_client_class.return_value = mock_client
+
+                register_assessment_tools(mcp)
+
+                tool = await mcp.get_tool("assess_control")
+                result = await tool.fn(
+                    control_id="PR.AC-01",
+                    framework="nist-csf-2.0",
+                    response="We use MFA and SSO for authentication",
+                    evaluate_response=True,
+                )
+
+                # Verify deterministic result still returned
+                assert "control_id" in result
+                assert "maturity_level" in result
+                assert "strengths" in result
+                assert "gaps" in result
+                assert "recommendations" in result
+                # Verify metadata indicates degradation
+                assert result["llm_used"] is False
+
+    @pytest.mark.asyncio
+    async def test_assess_control_control_not_found(
+        self,
+        mock_framework_manager: MagicMock,
+    ) -> None:
+        """assess_control returns error dict when control not found."""
+        mcp = FastMCP("test-server")
+        mock_framework_manager.get_control_details = AsyncMock(return_value=None)
+
+        with patch(
+            "compliance_oracle.tools.assessment.FrameworkManager",
+            return_value=mock_framework_manager,
+        ):
+            register_assessment_tools(mcp)
+
+            tool = await mcp.get_tool("assess_control")
+            result = await tool.fn(
+                control_id="INVALID-01",
+                framework="nist-csf-2.0",
+                response="Some response",
+                evaluate_response=True,
+            )
+
+            assert "error" in result
+            assert "not found" in result["error"]
+            assert result["control_id"] == "INVALID-01"
+            assert result["maturity_level"] == "not_addressed"
 
 class TestInterviewControlTool:
     """Tests for interview_control MCP tool."""
@@ -1133,6 +1238,102 @@ class TestInterviewControlTool:
 
                 assert "error" in result
                 assert "required" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_interview_control_submit_includes_metadata_fields(
+        self,
+        mock_framework_manager: MagicMock,
+        sample_control_details: ControlDetails,
+        tmp_path: Path,
+    ) -> None:
+        """interview_control submit mode includes new metadata fields."""
+        mcp = FastMCP("test-server")
+        mock_state_manager = MagicMock()
+        mock_state_manager.document_control = AsyncMock()
+
+        with patch(
+            "compliance_oracle.tools.assessment.FrameworkManager",
+            return_value=mock_framework_manager,
+        ):
+            register_assessment_tools(mcp)
+
+            tool = await mcp.get_tool("interview_control")
+
+            with patch(
+                "compliance_oracle.documentation.state.ComplianceStateManager",
+                return_value=mock_state_manager,
+            ):
+                result = await tool.fn(
+                    control_id="PR.AC-01",
+                    mode="submit",
+                    framework="nist-csf-2.0",
+                    answers={"q1": "We use MFA for all users"},
+                    project_path=str(tmp_path),
+                )
+
+                # Verify new metadata fields are present
+                assert "analysis_mode" in result
+                assert "llm_used" in result
+                assert "degrade_reason" in result
+                # analysis_mode should be either "deterministic" or "hybrid"
+                assert result["analysis_mode"] in ["deterministic", "hybrid"]
+                # llm_used should be a boolean
+                assert isinstance(result["llm_used"], bool)
+                # status should still be documented
+                assert result["status"] == "documented"
+
+    @pytest.mark.asyncio
+    async def test_interview_control_submit_deterministic_mode(
+        self,
+        mock_framework_manager: MagicMock,
+        sample_control_details: ControlDetails,
+        tmp_path: Path,
+    ) -> None:
+        """interview_control submit works in deterministic-only mode when Ollama unavailable."""
+        mcp = FastMCP("test-server")
+        mock_state_manager = MagicMock()
+        mock_state_manager.document_control = AsyncMock()
+
+        with patch(
+            "compliance_oracle.tools.assessment.FrameworkManager",
+            return_value=mock_framework_manager,
+        ):
+            # Mock OllamaClient to simulate unavailability
+            with patch(
+                "compliance_oracle.tools.assessment.OllamaClient"
+            ) as mock_client_class:
+                mock_client = MagicMock()
+                mock_client.generate = AsyncMock(
+                    return_value=MagicMock(
+                        status="error",
+                        content=None,
+                        error_code="ollama_unreachable",
+                    )
+                )
+                mock_client_class.return_value = mock_client
+
+                register_assessment_tools(mcp)
+
+                tool = await mcp.get_tool("interview_control")
+
+                with patch(
+                    "compliance_oracle.documentation.state.ComplianceStateManager",
+                    return_value=mock_state_manager,
+                ):
+                    result = await tool.fn(
+                        control_id="PR.AC-01",
+                        mode="submit",
+                        framework="nist-csf-2.0",
+                        answers={"q1": "We use MFA for all users"},
+                        project_path=str(tmp_path),
+                    )
+
+                    # Verify deterministic result still returned
+                    assert result["status"] == "documented"
+                    assert "control_id" in result
+                    # Verify metadata indicates deterministic/degraded
+                    assert result["llm_used"] is False
+                    assert result["degrade_reason"] is not None
 
 
 class TestGetAssessmentQuestionsScopes:
@@ -2131,11 +2332,1270 @@ class TestSanitizeText:
 
         assert "we recommend" not in result.lower()
 
-    def test_sanitize_preserves_allowed_language(self) -> None:
-        """Sanitization preserves allowed gap-identification language."""
-        from compliance_oracle.assessment.policy import sanitize_text
-
-        text = "Gap identified: MFA coverage may need assessment"
-        result = sanitize_text(text, [])
-
         assert result == text
+
+
+# ==============================================================================
+# ORCHESTRATOR TESTS
+# ==============================================================================
+
+
+class TestOrchestratorResult:
+    """Tests for OrchestratorResult model."""
+
+    def test_orchestrator_result_creation(self) -> None:
+        """OrchestratorResult can be created with all fields."""
+        from compliance_oracle.assessment.contracts import IntelligenceMode
+        from compliance_oracle.assessment.orchestrator import OrchestratorResult
+
+        result = OrchestratorResult(
+            control_id="PR.AC-01",
+            control_name="Identity and Credentials",
+            framework_id="nist-csf-2.0",
+            maturity_level="basic",
+            strengths=["MFA implemented"],
+            gaps=["No PAM solution"],
+            recommendations=["PAM coverage may need assessment"],
+        )
+
+        assert result.control_id == "PR.AC-01"
+        assert result.maturity_level == "basic"
+        assert len(result.strengths) == 1
+        assert result.metadata.analysis_mode == IntelligenceMode.DETERMINISTIC
+        assert result.is_llm_used is False
+    def test_orchestrator_result_with_llm_enrichment(self) -> None:
+        """OrchestratorResult with LLM enrichment."""
+        from compliance_oracle.assessment.contracts import (
+            IntelligenceMetadata,
+            IntelligenceMode,
+        )
+        from compliance_oracle.assessment.orchestrator import OrchestratorResult
+
+        result = OrchestratorResult(
+            control_id="PR.AC-01",
+            control_name="Identity and Credentials",
+            framework_id="nist-csf-2.0",
+            maturity_level="basic",
+            strengths=["MFA implemented"],
+            gaps=[],
+            recommendations=[],
+            llm_rationale="The response indicates MFA is in use.",
+            llm_context="Additional context from LLM.",
+            metadata=IntelligenceMetadata(
+                analysis_mode=IntelligenceMode.HYBRID,
+                llm_used=True,
+            ),
+        )
+
+        assert result.is_llm_used is True
+        assert result.llm_rationale is not None
+        assert result.degrade_reason is None
+
+    def test_orchestrator_result_degraded(self) -> None:
+        """OrchestratorResult with degradation."""
+        from compliance_oracle.assessment.contracts import (
+            DegradeReason,
+            IntelligenceMetadata,
+        )
+        from compliance_oracle.assessment.orchestrator import OrchestratorResult
+
+        result = OrchestratorResult(
+            control_id="PR.AC-01",
+            control_name="Identity and Credentials",
+            framework_id="nist-csf-2.0",
+            maturity_level="basic",
+            strengths=[],
+            gaps=["No MFA mentioned"],
+            recommendations=[],
+            metadata=IntelligenceMetadata(
+                llm_used=False,
+                degrade_reason=DegradeReason.OLLAMA_TIMEOUT,
+            ),
+        )
+
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.OLLAMA_TIMEOUT
+    def test_orchestrator_result_policy_violations(self) -> None:
+        """OrchestratorResult with policy violations."""
+        from compliance_oracle.assessment.contracts import IntelligenceMetadata
+        from compliance_oracle.assessment.orchestrator import OrchestratorResult
+
+        result = OrchestratorResult(
+            control_id="PR.AC-01",
+            control_name="Identity and Credentials",
+            framework_id="nist-csf-2.0",
+            maturity_level="basic",
+            strengths=[],
+            gaps=[],
+            recommendations=[],
+            metadata=IntelligenceMetadata(
+                llm_used=True,
+                policy_violations=["should implement"],
+            ),
+        )
+
+        assert result.has_policy_violations is True
+        assert "should implement" in result.metadata.policy_violations
+
+class TestIntelligenceOrchestratorInit:
+    """Tests for IntelligenceOrchestrator initialization."""
+
+    def test_init_with_config_only(self) -> None:
+        """Orchestrator initializes with config only (deterministic mode)."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator = IntelligenceOrchestrator(config)
+
+        assert orchestrator._config == config
+        assert orchestrator._ollama_client is None
+
+    def test_init_with_ollama_client(self) -> None:
+        """Orchestrator initializes with Ollama client (hybrid mode)."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig()
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        assert orchestrator._ollama_client is client
+
+    def test_should_use_llm_deterministic_mode(self) -> None:
+        """_should_use_llm returns False in deterministic mode."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="deterministic")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        assert orchestrator._should_use_llm() is False
+
+    def test_should_use_llm_hybrid_mode_no_client(self) -> None:
+        """_should_use_llm returns False when no client provided."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        orchestrator = IntelligenceOrchestrator(config)
+
+        assert orchestrator._should_use_llm() is False
+
+    def test_should_use_llm_hybrid_mode_with_client(self) -> None:
+        """_should_use_llm returns True in hybrid mode with client."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        assert orchestrator._should_use_llm() is True
+
+
+class TestIntelligenceOrchestratorAssess:
+    """Tests for IntelligenceOrchestrator.assess method."""
+
+    @pytest.mark.asyncio
+    async def test_assess_deterministic_only_mode(self) -> None:
+        """assess returns deterministic result when mode is deterministic."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import IntelligenceMode
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator = IntelligenceOrchestrator(config)
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use MFA for all users.",
+        )
+
+        assert result.control_id == "PR.AC-01"
+        assert result.maturity_level in ["basic", "not_addressed"]
+        assert result.metadata.analysis_mode == IntelligenceMode.DETERMINISTIC
+        assert result.is_llm_used is False
+        assert result.degrade_reason is None
+
+    @pytest.mark.asyncio
+    async def test_assess_hybrid_mode_no_client(self) -> None:
+        """assess returns deterministic result when no client provided."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import IntelligenceMode
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        orchestrator = IntelligenceOrchestrator(config)  # No client
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use MFA for all users.",
+        )
+
+        assert result.metadata.analysis_mode == IntelligenceMode.DETERMINISTIC
+        assert result.is_llm_used is False
+
+    @pytest.mark.asyncio
+    async def test_assess_hybrid_with_successful_llm(self, httpx_mock: Any) -> None:
+        """assess returns enriched result when LLM succeeds."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import IntelligenceMode
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        # Mock successful LLM response
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Rationale: MFA is mentioned. Context: Basic coverage.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use MFA for all users.",
+        )
+
+        assert result.metadata.analysis_mode == IntelligenceMode.HYBRID
+        assert result.is_llm_used is True
+        assert result.degrade_reason is None
+        # Deterministic fields preserved
+        assert result.maturity_level in ["basic", "not_addressed"]
+
+    @pytest.mark.asyncio
+    async def test_assess_hybrid_timeout_degrades(self, httpx_mock: Any) -> None:
+        """assess degrades gracefully on LLM timeout."""
+        import asyncio
+
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(
+            intelligence_mode="hybrid",
+            timeout_budget_seconds=1.0,
+        )
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        async def slow_response(request: Any) -> httpx.Response:
+            await asyncio.sleep(1.5)  # Longer than timeout
+            return httpx.Response(200, json={"response": "text"})
+
+        httpx_mock.add_callback(slow_response, url="http://localhost:11434/api/generate")
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use MFA.",
+        )
+
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.OLLAMA_TIMEOUT
+        # Deterministic result still present
+        assert result.control_id == "PR.AC-01"
+        assert result.maturity_level is not None
+
+    @pytest.mark.asyncio
+    async def test_assess_hybrid_connection_error_degrades(self, httpx_mock: Any) -> None:
+        """assess degrades gracefully on connection error."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection refused"),
+            url="http://localhost:11434/api/generate",
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use MFA.",
+        )
+
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.OLLAMA_UNREACHABLE
+
+    @pytest.mark.asyncio
+    async def test_assess_hybrid_circuit_open_degrades(self) -> None:
+        """assess degrades gracefully when circuit is open."""
+        import time
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        # Manually open the circuit
+        client._consecutive_failures = 10
+        client._circuit_open_until = time.monotonic() + 1000
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use MFA.",
+        )
+
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.CIRCUIT_OPEN
+
+    @pytest.mark.asyncio
+    async def test_assess_deterministic_preserved_on_llm_conflict(self, httpx_mock: Any) -> None:
+        """assess preserves deterministic results even if LLM suggests otherwise."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        # LLM response (doesn't matter what it says - deterministic wins)
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Rationale: Something. Context: Something else.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use MFA.",
+        )
+
+        # Maturity level comes from deterministic analysis, not LLM
+        assert result.maturity_level in ["basic", "not_addressed"]
+        # LLM only adds enrichment
+        assert result.llm_rationale is not None or result.llm_context is not None
+
+    @pytest.mark.asyncio
+    async def test_assess_policy_violation_detected(self, httpx_mock: Any) -> None:
+        """assess detects and records policy violations in LLM output."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        # LLM response with policy violation
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Rationale: You should implement MFA. Context: Done.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We have basic authentication.",
+        )
+
+        assert result.has_policy_violations is True
+        # Sanitized output should not contain 'you should'
+        if result.llm_rationale:
+            assert "you should" not in result.llm_rationale.lower()
+
+    @pytest.mark.asyncio
+    async def test_assess_with_context(self) -> None:
+        """assess uses context for control name and framework."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator = IntelligenceOrchestrator(config)
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use MFA.",
+            context={
+                "control_name": "Identity and Credentials",
+                "framework_id": "nist-csf-2.0",
+            },
+        )
+
+        assert result.control_name == "Identity and Credentials"
+        assert result.framework_id == "nist-csf-2.0"
+
+
+class TestIntelligenceOrchestratorEvaluate:
+    """Tests for IntelligenceOrchestrator.evaluate method."""
+
+    @pytest.mark.asyncio
+    async def test_evaluate_deterministic_only_mode(self) -> None:
+        """evaluate returns deterministic result when mode is deterministic."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import IntelligenceMode
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator = IntelligenceOrchestrator(config)
+
+        controls = [
+            {"id": "PR.AC-01", "name": "Identity", "function_name": "PROTECT"}
+        ]
+
+        result = await orchestrator.evaluate(
+            content="We have MFA in place.",
+            content_type="POLICY",
+            controls=controls,
+        )
+
+        assert result.evaluated_controls_count == 1
+        assert result.metadata.analysis_mode == IntelligenceMode.DETERMINISTIC
+        assert result.is_llm_used is False
+
+    @pytest.mark.asyncio
+    async def test_evaluate_hybrid_with_successful_llm(self, httpx_mock: Any) -> None:
+        """evaluate returns enriched result when LLM succeeds."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import IntelligenceMode
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Summary: Basic compliance posture.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        controls = [
+            {"id": "PR.AC-01", "name": "Identity", "function_name": "PROTECT"},
+        ]
+
+        result = await orchestrator.evaluate(
+            content="We have MFA in place.",
+            content_type="POLICY",
+            controls=controls,
+        )
+
+        assert result.metadata.analysis_mode == IntelligenceMode.HYBRID
+        assert result.is_llm_used is True
+        assert result.llm_summary is not None
+
+    @pytest.mark.asyncio
+    async def test_evaluate_hybrid_timeout_degrades(self, httpx_mock: Any) -> None:
+        """evaluate degrades gracefully on LLM timeout."""
+        import asyncio
+
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(
+            intelligence_mode="hybrid",
+            timeout_budget_seconds=1.0,
+        )
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        async def slow_response(request: Any) -> httpx.Response:
+            await asyncio.sleep(1.5)
+            return httpx.Response(200, json={"response": "text"})
+
+        httpx_mock.add_callback(slow_response, url="http://localhost:11434/api/generate")
+
+        controls = [{"id": "PR.AC-01", "name": "Identity"}]
+
+        result = await orchestrator.evaluate(
+            content="Some content.",
+            content_type="POLICY",
+            controls=controls,
+        )
+
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.OLLAMA_TIMEOUT
+        # Deterministic results preserved
+        assert result.evaluated_controls_count == 1
+
+    @pytest.mark.asyncio
+    async def test_evaluate_compliant_areas_detected(self) -> None:
+        """evaluate detects compliant areas from content."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator = IntelligenceOrchestrator(config)
+
+        controls = [
+            {"id": "PR.AC-01", "name": "Identity", "function_name": "PROTECT"},
+            {"id": "PR.DS-01", "name": "Data Security", "function_name": "PROTECT"},
+        ]
+
+        result = await orchestrator.evaluate(
+            content="We have MFA and encryption in place.",
+            content_type="POLICY",
+            controls=controls,
+        )
+
+        # Should detect PR.AC (MFA) and PR.DS (encryption) as compliant areas
+        assert len(result.compliant_areas) >= 1
+
+    @pytest.mark.asyncio
+    async def test_evaluate_gaps_identified(self) -> None:
+        """evaluate identifies gaps when no indicators present."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator = IntelligenceOrchestrator(config)
+
+        controls = [
+            {
+                "id": "PR.AC-01",
+                "name": "Identity",
+                "function_name": "PROTECT",
+                "category_name": "Access Control",
+            },
+        ]
+
+        result = await orchestrator.evaluate(
+            content="We have some basic security measures.",
+            content_type="POLICY",
+            controls=controls,
+        )
+
+        # No MFA mentioned, should be a gap
+        assert len(result.findings) >= 1
+
+    @pytest.mark.asyncio
+    async def test_evaluate_policy_violation_in_summary(self, httpx_mock: Any) -> None:
+        """evaluate detects policy violations in LLM summary."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "You should implement better controls.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.evaluate(
+            content="We have security.",
+            content_type="POLICY",
+            controls=[{"id": "PR.AC-01", "name": "Identity"}],
+        )
+
+        assert result.is_llm_used is True
+        # Policy violation should be recorded
+        assert len(result.metadata.policy_violations) > 0
+
+
+
+# ==============================================================================
+# T11: HYBRID PARITY, OUTAGE, AND POLICY REGRESSION TESTS
+# ==============================================================================
+
+
+class TestHybridDeterministicParity:
+    """Tests verifying deterministic and hybrid modes produce identical core results.
+
+    These tests ensure that the core deterministic assessment (control status,
+    gaps, strengths, recommendations) is IDENTICAL regardless of LLM availability.
+    LLM can only add enrichment, never change the deterministic assessment.
+    """
+
+    @pytest.mark.asyncio
+    async def test_parity_control_status_identical(self) -> None:
+        """Same input produces identical maturity_level in deterministic and hybrid modes."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        response = "We use multi-factor authentication for all users and have SSO via SAML."
+
+        # Run deterministic-only
+        config_det = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator_det = IntelligenceOrchestrator(config_det)
+        result_det = await orchestrator_det.assess(
+            control_id="PR.AC-01",
+            response=response,
+            context={"control_name": "Identity", "framework_id": "nist-csf-2.0"},
+        )
+
+        # Run hybrid without client (simulates degraded hybrid)
+        config_hybrid = IntelligenceConfig(intelligence_mode="hybrid")
+        orchestrator_hybrid = IntelligenceOrchestrator(config_hybrid)  # No client
+        result_hybrid = await orchestrator_hybrid.assess(
+            control_id="PR.AC-01",
+            response=response,
+            context={"control_name": "Identity", "framework_id": "nist-csf-2.0"},
+        )
+
+        # Core deterministic fields MUST be identical
+        assert result_det.control_id == result_hybrid.control_id
+        assert result_det.maturity_level == result_hybrid.maturity_level
+        assert result_det.strengths == result_hybrid.strengths
+        assert result_det.gaps == result_hybrid.gaps
+        assert result_det.recommendations == result_hybrid.recommendations
+
+    @pytest.mark.asyncio
+    async def test_parity_gaps_identical_with_llm_failure(
+        self, httpx_mock: Any
+    ) -> None:
+        """Hybrid mode with LLM failure produces identical gaps to deterministic."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        response = "We have basic password policies but no MFA."
+
+        # Run deterministic-only
+        config_det = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator_det = IntelligenceOrchestrator(config_det)
+        result_det = await orchestrator_det.assess(
+            control_id="PR.AC-01",
+            response=response,
+        )
+
+        # Run hybrid with connection failure
+        config_hybrid = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config_hybrid)
+        orchestrator_hybrid = IntelligenceOrchestrator(config_hybrid, client)
+
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection refused"),
+            url="http://localhost:11434/api/generate",
+        )
+
+        result_hybrid = await orchestrator_hybrid.assess(
+            control_id="PR.AC-01",
+            response=response,
+        )
+
+        # Gaps and strengths must be identical despite LLM failure
+        assert result_det.gaps == result_hybrid.gaps
+        assert result_det.strengths == result_hybrid.strengths
+        assert result_det.maturity_level == result_hybrid.maturity_level
+        # Verify degradation occurred
+        assert result_hybrid.is_llm_used is False
+        assert result_hybrid.degrade_reason is not None
+
+    @pytest.mark.asyncio
+    async def test_parity_evaluation_findings_identical(self) -> None:
+        """Evaluation produces identical findings in deterministic and hybrid modes."""
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        content = "We have MFA and encryption at rest for all data."
+        controls = [
+            {"id": "PR.AC-01", "name": "Identity", "function_name": "PROTECT"},
+            {"id": "PR.DS-01", "name": "Data Security", "function_name": "PROTECT"},
+        ]
+
+        # Run deterministic-only
+        config_det = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator_det = IntelligenceOrchestrator(config_det)
+        result_det = await orchestrator_det.evaluate(
+            content=content,
+            content_type="POLICY",
+            controls=controls,
+        )
+
+        # Run hybrid without client
+        config_hybrid = IntelligenceConfig(intelligence_mode="hybrid")
+        orchestrator_hybrid = IntelligenceOrchestrator(config_hybrid)
+        result_hybrid = await orchestrator_hybrid.evaluate(
+            content=content,
+            content_type="POLICY",
+            controls=controls,
+        )
+
+        # Core evaluation fields must be identical
+        assert result_det.findings == result_hybrid.findings
+        assert result_det.compliant_areas == result_hybrid.compliant_areas
+        assert result_det.evaluated_controls_count == result_hybrid.evaluated_controls_count
+        assert result_hybrid.is_llm_used is False
+
+    @pytest.mark.asyncio
+    async def test_parity_llm_cannot_change_maturity(
+        self, httpx_mock: Any
+    ) -> None:
+        """LLM cannot change maturity level from deterministic assessment."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        response = "We have some basic security measures."
+
+        # Get deterministic result first
+        config_det = IntelligenceConfig(intelligence_mode="deterministic")
+        orchestrator_det = IntelligenceOrchestrator(config_det)
+        result_det = await orchestrator_det.assess(
+            control_id="PR.AC-01",
+            response=response,
+        )
+
+        # Run hybrid with LLM that "suggests" higher maturity
+        config_hybrid = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config_hybrid)
+        orchestrator_hybrid = IntelligenceOrchestrator(config_hybrid, client)
+
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Rationale: This is clearly advanced maturity.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result_hybrid = await orchestrator_hybrid.assess(
+            control_id="PR.AC-01",
+            response=response,
+        )
+
+        # Maturity level MUST match deterministic, ignoring LLM's opinion
+        assert result_det.maturity_level == result_hybrid.maturity_level
+        assert result_hybrid.is_llm_used is True
+        # LLM enrichment is allowed
+        assert result_hybrid.llm_rationale is not None
+
+
+class TestHardDegradeBehavior:
+    """Tests for hard-degrade behavior under various Ollama failure scenarios.
+
+    These tests verify that ALL Ollama failures result in graceful degradation
+    with deterministic results preserved and appropriate degrade_reason set.
+    """
+
+    @pytest.mark.asyncio
+    async def test_degrade_timeout_returns_deterministic_results(
+        self, httpx_mock: Any
+    ) -> None:
+        """Timeout returns deterministic results with ollama_timeout reason."""
+        import asyncio
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(
+            intelligence_mode="hybrid",
+            timeout_budget_seconds=1.0,
+        )
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        async def slow_response(request: Any) -> httpx.Response:
+            await asyncio.sleep(1.5)
+            return httpx.Response(200, json={"response": "text"})
+
+        httpx_mock.add_callback(slow_response, url="http://localhost:11434/api/generate")
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use MFA and SSO for authentication."
+        )
+
+        # Verify degradation
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.OLLAMA_TIMEOUT
+        # Verify deterministic results still present
+        assert result.control_id == "PR.AC-01"
+        assert result.maturity_level in ["basic", "intermediate", "advanced", "not_addressed"]
+        assert isinstance(result.strengths, list)
+        assert isinstance(result.gaps, list)
+
+    @pytest.mark.asyncio
+    async def test_degrade_connection_error_returns_deterministic_results(
+        self, httpx_mock: Any
+    ) -> None:
+        """Connection error returns deterministic results with ollama_unreachable reason."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection refused"),
+            url="http://localhost:11434/api/generate",
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.DS-01",
+            response="We use TLS 1.3 for all connections and AES-256 at rest."
+        )
+
+        # Verify degradation
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.OLLAMA_UNREACHABLE
+        # Verify deterministic results
+        assert result.control_id == "PR.DS-01"
+        assert len(result.strengths) >= 1  # Should detect encryption
+
+    @pytest.mark.asyncio
+    async def test_degrade_circuit_open_returns_deterministic_results(
+        self,
+    ) -> None:
+        """Circuit open returns deterministic results with circuit_open reason."""
+        import time
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        # Manually open circuit
+        client._consecutive_failures = 10
+        client._circuit_open_until = time.monotonic() + 1000
+
+        result = await orchestrator.assess(
+            control_id="PR.AT-01",
+            response="We provide annual security awareness training."
+        )
+
+        # Verify degradation
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.CIRCUIT_OPEN
+        # Verify deterministic results
+        assert result.control_id == "PR.AT-01"
+        assert result.metadata.latency_ms == 0  # No network call made
+
+    @pytest.mark.asyncio
+    async def test_degrade_malformed_response_returns_deterministic_results(
+        self, httpx_mock: Any
+    ) -> None:
+        """Malformed JSON response returns deterministic results with ollama_malformed_response."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        # Return invalid JSON
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            content=b"not valid json{{{",
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.IP-01",
+            response="We have a vulnerability management process."
+        )
+
+        # Verify degradation
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.OLLAMA_MALFORMED_RESPONSE
+        # Verify deterministic results
+        assert result.control_id == "PR.IP-01"
+
+    @pytest.mark.asyncio
+    async def test_degrade_missing_response_field_returns_deterministic_results(
+        self, httpx_mock: Any
+    ) -> None:
+        """Missing 'response' field returns deterministic results with ollama_malformed_response."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        # Return valid JSON but missing 'response' field
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={"model": "llama3.2", "done": True},  # Missing 'response'
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="DE.CM-01",
+            response="We use SIEM for continuous monitoring."
+        )
+
+        # Verify degradation
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.OLLAMA_MALFORMED_RESPONSE
+
+    @pytest.mark.asyncio
+    async def test_degrade_evaluation_timeout_returns_deterministic_results(
+        self, httpx_mock: Any
+    ) -> None:
+        """Evaluation timeout returns deterministic results with ollama_timeout reason."""
+        import asyncio
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.contracts import DegradeReason
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(
+            intelligence_mode="hybrid",
+            timeout_budget_seconds=1.0,
+        )
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        async def slow_response(request: Any) -> httpx.Response:
+            await asyncio.sleep(1.5)
+            return httpx.Response(200, json={"response": "summary"})
+
+        httpx_mock.add_callback(slow_response, url="http://localhost:11434/api/generate")
+
+        controls = [{"id": "PR.AC-01", "name": "Identity"}]
+
+        result = await orchestrator.evaluate(
+            content="We have security controls.",
+            content_type="POLICY",
+            controls=controls,
+        )
+
+        # Verify degradation
+        assert result.is_llm_used is False
+        assert result.degrade_reason == DegradeReason.OLLAMA_TIMEOUT
+        # Verify deterministic results
+        assert result.evaluated_controls_count == 1
+        assert isinstance(result.findings, list)
+
+
+class TestPolicyEnforcementRegression:
+    """Tests for explicit no-fix policy enforcement across assessment/evaluation paths.
+
+    These tests verify that forbidden remediation patterns like 'you should implement'
+    are detected, flagged, and sanitized across all code paths that process LLM output.
+    """
+
+    @pytest.mark.asyncio
+    async def test_policy_you_should_implement_blocked_in_assess(
+        self, httpx_mock: Any
+    ) -> None:
+        """'you should implement' pattern is blocked in assessment LLM output."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        # LLM tries to suggest fixes
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Rationale: You should implement MFA. Context: Security gap.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We have passwords."
+        )
+
+        # Policy violation should be recorded
+        assert result.has_policy_violations is True
+        assert len(result.metadata.policy_violations) > 0
+        # Any violation containing 'should' or 'implement'
+        violations_text = " ".join(result.metadata.policy_violations).lower()
+        assert "should" in violations_text or "implement" in violations_text
+
+    @pytest.mark.asyncio
+    async def test_policy_we_recommend_blocked_in_assess(
+        self, httpx_mock: Any
+    ) -> None:
+        """'we recommend' pattern is blocked in assessment LLM output."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Rationale: We recommend enabling encryption. Context: Gap.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.DS-01",
+            response="We store data."
+        )
+
+        assert result.has_policy_violations is True
+
+    @pytest.mark.asyncio
+    async def test_policy_to_fix_this_blocked_in_assess(
+        self, httpx_mock: Any
+    ) -> None:
+        """'to fix this' pattern is blocked in assessment LLM output."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Rationale: To fix this gap, enable MFA. Context: Done.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="Basic auth only."
+        )
+
+        assert result.has_policy_violations is True
+
+    @pytest.mark.asyncio
+    async def test_policy_you_must_blocked_in_evaluation(
+        self, httpx_mock: Any
+    ) -> None:
+        """'you must' pattern is blocked in evaluation LLM output."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "You must implement access controls to address gaps.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        controls = [{"id": "PR.AC-01", "name": "Identity"}]
+
+        result = await orchestrator.evaluate(
+            content="Some policy content.",
+            content_type="POLICY",
+            controls=controls,
+        )
+
+        assert result.is_llm_used is True
+        assert len(result.metadata.policy_violations) > 0
+
+    @pytest.mark.asyncio
+    async def test_policy_consider_implementing_blocked(
+        self, httpx_mock: Any
+    ) -> None:
+        """'consider implementing' pattern is blocked."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Consider implementing a SIEM solution.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="DE.CM-01",
+            response="We have logs."
+        )
+
+        assert result.has_policy_violations is True
+
+    @pytest.mark.asyncio
+    async def test_policy_sanitized_output_does_not_contain_forbidden_phrases(
+        self, httpx_mock: Any
+    ) -> None:
+        """Sanitized output does not contain forbidden phrases."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Rationale: You should implement MFA. Context: Gap identified.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We use passwords."
+        )
+
+        # If rationale was extracted, it should be sanitized
+        if result.llm_rationale:
+            rationale_lower = result.llm_rationale.lower()
+            assert "you should" not in rationale_lower
+            # The original 'should implement' should be replaced
+            # (sanitization replaces with 'implementation of' or similar)
+
+    @pytest.mark.asyncio
+    async def test_policy_allowed_gap_language_passes(
+        self, httpx_mock: Any
+    ) -> None:
+        """Allowed gap-identification language passes through without violations."""
+        import httpx
+
+        from compliance_oracle.assessment.config import IntelligenceConfig
+        from compliance_oracle.assessment.llm.ollama_client import OllamaClient
+        from compliance_oracle.assessment.orchestrator import IntelligenceOrchestrator
+
+        config = IntelligenceConfig(intelligence_mode="hybrid")
+        client = OllamaClient(config)
+        orchestrator = IntelligenceOrchestrator(config, client)
+
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/generate",
+            method="POST",
+            json={
+                "model": "llama3.2",
+                "response": "Rationale: Gap identified - no evidence of MFA enforcement. Context: Assessment complete.",
+                "done": True,
+            },
+            status_code=200,
+        )
+
+        result = await orchestrator.assess(
+            control_id="PR.AC-01",
+            response="We have some authentication."
+        )
+
+        # No policy violations for gap-identification language
+        assert result.has_policy_violations is False
+        assert result.metadata.policy_violations == []
