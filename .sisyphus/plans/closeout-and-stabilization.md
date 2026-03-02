@@ -165,7 +165,7 @@ Wave 3 (mypy R-002 + final gate): T6, T7, T8, T9
   ```
   **Commit**: YES | Message: `chore(lint): apply safe ruff autofix baseline` | Files: autofix-touched files only
 
-- [ ] T4. Resolve manual Ruff issues in tests
+- [x] T4. Resolve manual Ruff issues in tests
   **What to do**: Fix residual test-only manual rules (E402/SIM117/F841) with minimal structural edits.
   **Must NOT do**: Refactor test architecture.
   **Recommended Agent Profile**: Category `unspecified-high`; Skills `[]`; Omitted `playwright`.
@@ -190,7 +190,7 @@ Wave 3 (mypy R-002 + final gate): T6, T7, T8, T9
   ```
   **Commit**: YES | Message: `chore(tests): resolve manual ruff findings` | Files: residual test files only
 
-- [ ] T5. Resolve manual Ruff issues in `src/` and `scripts/`
+- [x] T5. Resolve manual Ruff issues in `src/` and `scripts/`
   **What to do**: Fix residual source/script manual rules (B904, F841, SIM108).
   **Must NOT do**: Change product behavior except exception chaining clarity.
   **Recommended Agent Profile**: Category `quick`; Skills `[]`; Omitted `dev-browser`.
@@ -215,7 +215,7 @@ Wave 3 (mypy R-002 + final gate): T6, T7, T8, T9
   ```
   **Commit**: YES | Message: `fix(lint): resolve manual source and script ruff findings` | Files: residual source/script files only
 
-- [ ] T6. Remove stale decorator ignores (R-002 phase A)
+- [x] T6. Remove stale decorator ignores (R-002 phase A)
   **What to do**: Remove stale `type: ignore[untyped-decorator]` comments from tool registration decorators and re-run mypy.
   **Must NOT do**: Remove non-stale ignores unrelated to reported `unused-ignore`.
   **Recommended Agent Profile**: Category `quick`; Skills `[]`; Omitted `git-master`.
@@ -240,7 +240,7 @@ Wave 3 (mypy R-002 + final gate): T6, T7, T8, T9
   ```
   **Commit**: YES | Message: `chore(types): remove stale decorator ignore comments` | Files: `src/compliance_oracle/tools/*.py`
 
-- [ ] T7. Fix low-risk mypy mismatches
+- [x] T7. Fix low-risk mypy mismatches
   **What to do**: Resolve `no-any-return` and non-Chroma arg-type mismatches in framework manager/orchestrator.
   **Must NOT do**: Change assessment semantics.
   **Recommended Agent Profile**: Category `unspecified-high`; Skills `[]`; Omitted `frontend-ui-ux`.
@@ -265,7 +265,7 @@ Wave 3 (mypy R-002 + final gate): T6, T7, T8, T9
   ```
   **Commit**: YES | Message: `fix(types): resolve low-risk mypy mismatches in core modules` | Files: targeted core modules only
 
-- [ ] T8. Resolve ChromaDB typing cluster in `rag/search.py`
+- [x] T8. Resolve ChromaDB typing cluster in `rag/search.py`
   **What to do**: Resolve remaining ChromaDB-related mypy errors with precise typing/casts aligned to current API.
   **Must NOT do**: Add blanket file-level ignores.
   **Recommended Agent Profile**: Category `deep`; Skills `[]`; Omitted `playwright`.
@@ -290,7 +290,7 @@ Wave 3 (mypy R-002 + final gate): T6, T7, T8, T9
   ```
   **Commit**: YES | Message: `fix(types): align rag search typing with chromadb api` | Files: `src/compliance_oracle/rag/search.py`
 
-- [ ] T9. Final integrated gate + boulder state handoff
+- [x] T9. Final integrated gate + boulder state handoff
   **What to do**: Run integrated quality gate, mark this plan complete, and update `.sisyphus/boulder.json` state.
   **Must NOT do**: Leave unchecked implementation tasks when reporting done.
   **Recommended Agent Profile**: Category `quick`; Skills `[]`; Omitted `dev-browser`.
